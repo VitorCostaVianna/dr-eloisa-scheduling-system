@@ -279,10 +279,10 @@ e dependências instaladas.
 
 Run:
 ```bash
-pnpm --filter api add helmet class-validator class-transformer @nestjs/throttler pino nestjs-pino argon2
+pnpm --filter api add helmet class-validator class-transformer @nestjs/throttler pino nestjs-pino argon2 dotenv
 ```
 Expected: instala sem erro (essas libs cobrem os requisitos de segurança do projeto: Helmet, DTO validation,
-rate limiting, logs estruturados, hash de senha).
+rate limiting, logs estruturados, hash de senha, carregamento de `.env`).
 
 - [x] **Step 3: Criar `apps/api/.env.example`**
 
@@ -295,6 +295,7 @@ CORS_ORIGIN="http://localhost:3000"
 - [x] **Step 4: Reescrever `apps/api/src/main.ts`**
 
 ```typescript
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
@@ -302,6 +303,12 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  // Falha rápido em vez de deixar o CORS do Nest cair pro padrão "*" quando a env var
+  // não está setada (comportamento do pacote `cors`: origin undefined == allow-all).
+  if (!process.env.CORS_ORIGIN) {
+    throw new Error('CORS_ORIGIN precisa estar definida (nunca usar "*" em produção)');
+  }
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.useLogger(app.get(Logger));
@@ -323,12 +330,20 @@ async function bootstrap() {
 bootstrap();
 ```
 
-- [x] **Step 5: Registrar `LoggerModule` (pino) e `ThrottlerModule` em `apps/api/src/app.module.ts`**
+`import 'dotenv/config'` (pacote `dotenv`, instalado à parte) precisa vir antes de qualquer outro import que
+leia `process.env` — sem ele nada carrega o `.env` pro processo, e o `CORS_ORIGIN` acima ficaria sempre
+`undefined` mesmo com o arquivo `.env` existindo (achado real do subagent de revisão pós-Tarefa 3, corrigido
+antes do commit).
+
+- [x] **Step 5: Registrar `LoggerModule` (pino), `ThrottlerModule` e o guard de rate limiting em `apps/api/src/app.module.ts`**
 
 ```typescript
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -341,9 +356,22 @@ import { ThrottlerModule } from '@nestjs/throttler';
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
   ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    // ThrottlerModule.forRoot() só registra as opções — sem isto, nenhuma rota é
+    // limitada de verdade. Módulos com rotas sensíveis (login, reset de senha) usam
+    // @Throttle(...) por cima deste limite global pra apertar ainda mais.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
 ```
+
+O `{ provide: APP_GUARD, useClass: ThrottlerGuard }` é o que efetivamente ativa o rate limiting — sem ele,
+`ThrottlerModule.forRoot()` sozinho só registra as opções, nenhuma rota fica de fato limitada (achado real do
+subagent de revisão pós-Tarefa 3, corrigido antes do commit; confirmado depois via headers
+`X-RateLimit-Limit`/`X-RateLimit-Remaining` numa resposta real).
 
 - [x] **Step 6: Rodar a API e confirmar boot**
 
