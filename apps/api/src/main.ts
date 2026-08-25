@@ -14,6 +14,11 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
+  // Sem isto, hooks como PrismaService.onModuleDestroy (que fecha o pool de conexões)
+  // só rodam em app.close() manual — nunca em SIGTERM/SIGINT reais (restart de
+  // container, deploy, Ctrl+C).
+  app.enableShutdownHooks();
+
   app.useLogger(app.get(Logger));
   app.use(helmet());
   app.enableCors({
