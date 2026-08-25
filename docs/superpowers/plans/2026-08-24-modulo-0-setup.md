@@ -158,17 +158,22 @@ dist/
 export {};
 ```
 
-- [ ] **Step 7: Rodar `pnpm install` na raiz e verificar que o workspace resolve**
+- [x] **Step 7: Rodar `pnpm install` na raiz e verificar que o workspace resolve**
 
 Run: `pnpm install`
 Expected: instala `turbo` e linka `@sistema-agendamento/shared-types` sem erro (ainda não há `apps/*`, tudo bem).
 
-- [ ] **Step 8: Commit**
+DONE (2026-08-24) — pnpm 9.12.0 instalado via `npm install -g pnpm@9.12.0` (corepack falhou por permissão em
+`C:\Program Files\nodejs`). `pnpm install` resolveu sem erro.
+
+- [x] **Step 8: Commit**
 
 ```bash
 git add package.json pnpm-workspace.yaml turbo.json .gitignore .nvmrc packages/shared-types
 git commit -m "chore: scaffold pnpm workspace + turborepo monorepo"
 ```
+
+DONE — commit `2f6c87f`. **Tarefa 1 concluída.**
 
 ---
 
@@ -214,7 +219,12 @@ DATABASE_URL="postgresql://agendamento:agendamento_dev_only@localhost:5432/agend
 DATABASE_URL_TEST="postgresql://agendamento:agendamento_dev_only@localhost:5432/agendamento_test?connection_limit=5&pool_timeout=10"
 ```
 
-- [ ] **Step 3: Subir o container e verificar saúde**
+- [x] **Step 1** e **Step 2** DONE (2026-08-24) — `docker-compose.yml` e `.env.example` criados, ainda não
+  commitados (aguardando verificação real do container antes de commitar, conforme o plano).
+
+- [ ] **Step 3: Subir o container e verificar saúde** — **BLOQUEADO:** Docker Desktop não estava rodando
+  (`error during connect: ...dockerDesktopLinuxEngine...`). Claude não consegue abrir apps GUI — usuário vai
+  iniciar o Docker Desktop manualmente e retomar depois. **Retomar exatamente aqui.**
 
 Run: `docker compose up -d && docker compose ps`
 Expected: serviço `postgres` com status `healthy` (pode levar alguns segundos — repita `docker compose ps`
