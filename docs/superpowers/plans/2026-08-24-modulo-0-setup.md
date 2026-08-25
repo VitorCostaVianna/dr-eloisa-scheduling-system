@@ -222,25 +222,19 @@ DATABASE_URL_TEST="postgresql://agendamento:agendamento_dev_only@localhost:5432/
 - [x] **Step 1** e **Step 2** DONE (2026-08-24) — `docker-compose.yml` e `.env.example` criados, ainda não
   commitados (aguardando verificação real do container antes de commitar, conforme o plano).
 
-- [ ] **Step 3: Subir o container e verificar saúde** — **BLOQUEADO:** Docker Desktop não estava rodando
-  (`error during connect: ...dockerDesktopLinuxEngine...`). Claude não consegue abrir apps GUI — usuário vai
-  iniciar o Docker Desktop manualmente e retomar depois. **Retomar exatamente aqui.**
+- [x] **Step 3: Subir o container e verificar saúde** — DONE (2026-08-25), `docker compose ps` mostrou
+  `sistema_agendamento_dr_eloisa-postgres-1` como `Up ... (healthy)`.
 
-Run: `docker compose up -d && docker compose ps`
-Expected: serviço `postgres` com status `healthy` (pode levar alguns segundos — repita `docker compose ps`
-até aparecer).
+- [x] **Step 4: Criar a segunda database (`agendamento_test`)** — DONE, `CREATE DATABASE` confirmado.
 
-- [ ] **Step 4: Criar a segunda database (`agendamento_test`) dentro do mesmo container**
-
-Run: `docker compose exec postgres psql -U agendamento -d agendamento_dev -c "CREATE DATABASE agendamento_test;"`
-Expected: `CREATE DATABASE`
-
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docker-compose.yml .env.example
 git commit -m "chore: add local Postgres via Docker Compose"
 ```
+
+DONE — commit `ea3fa71`. **Tarefa 2 concluída.**
 
 ---
 
