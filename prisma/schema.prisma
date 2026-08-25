@@ -1,0 +1,169 @@
+// Schema de dados v1 — Sistema de Agendamento (Clínica Dra. Eloísa)
+// Decisões e porquês: docs/superpowers/specs/2026-08-24-appointment-scheduling-schema-design.md
+//
+// A exclusion constraint que impede sobreposição de horários (ver seção 4 do design doc)
+// não pode ser expressa aqui — ela entra manualmente na migration SQL gerada por este schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DENTIST
+  STAFF
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum ExceptionType {
+  CLOSED
+  CUSTOM_HOURS
+}
+
+enum CancelledBy {
+  PATIENT
+  DENTIST
+}
+
+model User {
+  id     String @id @default(uuid())
+  email  String @unique
+  passwordHash String
+  role   Role   @default(DENTIST)
+
+  // Hash do refresh token atual (nunca o token em texto puro) — permite revogar no
+  // logout e detectar reuso de token roubado.
+  refreshTokenHash      String?
+  refreshTokenExpiresAt DateTime?
+
+  professional Professional?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Professional {
+  id     String  @id @default(uuid())
+  name   String
+  bio    String?
+
+  // Nullable: nem todo profissional precisa ter login próprio no futuro.
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @unique
+
+  services     Service[]            @relation("ProfessionalServices")
+  workingHours WorkingHours[]
+  exceptions   ScheduleException[]
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id              String   @id @default(uuid())
+  name            String
+  durationMinutes Int
+  price           Decimal? @db.Decimal(10, 2)
+  active          Boolean  @default(true)
+
+  professionals Professional[] @relation("ProfessionalServices")
+  appointments  Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Patient {
+  id    String @id @default(uuid())
+  name  String
+  phone String @unique
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Regra recorrente de atendimento. Intervalo de almoço (ou qualquer outro intervalo
+// fixo) não é um campo especial — é modelado como duas linhas no mesmo dia
+// (ex.: 08:00–12:00 e 14:00–18:00), com a lacuna entre elas tratada como indisponível.
+model WorkingHours {
+  id             String       @id @default(uuid())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  professionalId String
+
+  dayOfWeek   Int // 0 (domingo) a 6 (sábado)
+  startMinute Int // minutos desde meia-noite
+  endMinute   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([professionalId, dayOfWeek])
+}
+
+// Data específica que desvia da regra recorrente: feriado fechado, ou horário
+// customizado só naquele dia.
+model ScheduleException {
+  id             String        @id @default(uuid())
+  professional   Professional  @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  professionalId String
+
+  date        DateTime      @db.Date
+  type        ExceptionType
+  startMinute Int? // usado só quando type = CUSTOM_HOURS
+  endMinute   Int?
+  reason      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([professionalId, date])
+  @@index([professionalId, date])
+}
+
+model Appointment {
+  id             String       @id @default(uuid())
+  professional   Professional @relation(fields: [professionalId], references: [id])
+  professionalId String
+  service        Service      @relation(fields: [serviceId], references: [id])
+  serviceId      String
+  patient        Patient      @relation(fields: [patientId], references: [id])
+  patientId      String
+
+  // endAt = startAt + service.durationMinutes no momento da criação (denormalizado
+  // para a exclusion constraint não depender de join).
+  startAt DateTime
+  endAt   DateTime
+
+  status AppointmentStatus @default(PENDING)
+
+  // Link público /cancelar/{token} — única porta de entrada do paciente sem login.
+  cancellationToken String       @unique @default(uuid())
+  cancelledBy       CancelledBy?
+  cancelledAt       DateTime?
+
+  // Chave enviada pelo front por tentativa de agendamento; retry/duplo clique com a
+  // mesma chave não cria um segundo registro.
+  idempotencyKey String? @unique
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([professionalId, startAt])
+  @@index([patientId])
+}
