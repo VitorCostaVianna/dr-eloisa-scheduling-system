@@ -45,12 +45,12 @@ model User {
   // Hash do refresh token atual (nunca o token em texto puro) — permite revogar no
   // logout e detectar reuso de token roubado.
   refreshTokenHash      String?
-  refreshTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
 
   professional Professional?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model Professional {
@@ -67,8 +67,8 @@ model Professional {
   exceptions   ScheduleException[]
   appointments Appointment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model Service {
@@ -81,8 +81,8 @@ model Service {
   professionals Professional[] @relation("ProfessionalServices")
   appointments  Appointment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
 model Patient {
@@ -92,8 +92,8 @@ model Patient {
 
   appointments Appointment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
 // Regra recorrente de atendimento. Intervalo de almoço (ou qualquer outro intervalo
@@ -108,8 +108,8 @@ model WorkingHours {
   startMinute Int // minutos desde meia-noite
   endMinute   Int
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([professionalId, dayOfWeek])
 }
@@ -127,8 +127,8 @@ model ScheduleException {
   endMinute   Int?
   reason      String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@unique([professionalId, date])
   @@index([professionalId, date])
@@ -144,16 +144,19 @@ model Appointment {
   patientId      String
 
   // endAt = startAt + service.durationMinutes no momento da criação (denormalizado
-  // para a exclusion constraint não depender de join).
-  startAt DateTime
-  endAt   DateTime
+  // para a exclusion constraint não depender de join). @db.Timestamptz(3): sem isto o
+  // Prisma mapeia DateTime pra `timestamp without time zone` por padrão no Postgres —
+  // ambíguo pra um sistema de agendamento. A constraint usa tstzrange (não tsrange) por
+  // causa disso, ver migration da Tarefa 5.
+  startAt DateTime @db.Timestamptz(3)
+  endAt   DateTime @db.Timestamptz(3)
 
   status AppointmentStatus @default(PENDING)
 
   // Link público /cancelar/{token} — única porta de entrada do paciente sem login.
   cancellationToken String       @unique @default(uuid())
   cancelledBy       CancelledBy?
-  cancelledAt       DateTime?
+  cancelledAt       DateTime?    @db.Timestamptz(3)
 
   // Chave enviada pelo front por tentativa de agendamento; retry/duplo clique com a
   // mesma chave não cria um segundo registro.
@@ -161,8 +164,8 @@ model Appointment {
 
   notes String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([professionalId, startAt])
   @@index([patientId])
