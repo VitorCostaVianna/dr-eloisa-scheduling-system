@@ -540,13 +540,15 @@ DONE — commit `cc10024`. **Tarefa 4 concluída.**
 - Produces: banco `agendamento_dev` com todas as tabelas do schema + a constraint `no_overlapping_appointments`
   realmente ativa — é o que a Tarefa 6 vai provar.
 
-- [ ] **Step 1: Gerar a migration sem aplicar**
+- [x] **Step 1: Gerar a migration sem aplicar** — DONE (2026-08-25), gerou
+  `apps/api/prisma/migrations/20260825201117_init/migration.sql`, conteúdo bate exatamente com o schema
+  (todas as tabelas, enums, FKs, índices).
 
 Run: `pnpm --filter api exec prisma migrate dev --create-only --name init`
 Expected: cria `apps/api/prisma/migrations/<timestamp>_init/migration.sql` com o `CREATE TABLE` de todas as
 entidades, mas ainda não aplica no banco.
 
-- [ ] **Step 2: Abrir o `migration.sql` gerado e acrescentar, no final do arquivo, exatamente este bloco**
+- [x] **Step 2: Abrir o `migration.sql` gerado e acrescentar, no final do arquivo, exatamente este bloco**
 (copiado da spec, seção 4 — não reformular):
 
 ```sql
@@ -561,30 +563,36 @@ ALTER TABLE "Appointment"
   WHERE (status <> 'CANCELLED');
 ```
 
-- [ ] **Step 3: Aplicar a migration no banco de desenvolvimento**
+- [x] **Step 3: Aplicar a migration no banco de desenvolvimento** — DONE, `Your database is now in sync with
+  your schema.`, sem erro de extensão (usuário `agendamento` é dono do banco por padrão no compose).
 
 Run: `pnpm --filter api exec prisma migrate dev`
 Expected: `Your database is now in sync with your schema.` — sem erro. Se der erro de extensão
 (`permission denied to create extension`), confirme que o usuário `agendamento` do Docker Compose é dono do
 banco (é, por padrão, no compose da Tarefa 2).
 
-- [ ] **Step 4: Aplicar a mesma migration no banco de teste**
+- [x] **Step 4: Aplicar a mesma migration no banco de teste** — DONE via `prisma migrate deploy`, "All
+  migrations have been successfully applied."
 
 Run: `DATABASE_URL="$DATABASE_URL_TEST" pnpm --filter api exec prisma migrate deploy`
 (ajuste a variável conforme o shell — no PowerShell seria `$env:DATABASE_URL=$env:DATABASE_URL_TEST; ...`)
 Expected: mesma confirmação de sucesso, agora em `agendamento_test`.
 
-- [ ] **Step 5: Verificar manualmente que a constraint existe**
+- [x] **Step 5: Verificar manualmente que a constraint existe** — DONE, `\d+ "Appointment"` mostra
+  `no_overlapping_appointments EXCLUDE USING gist ("professionalId" WITH =, tsrange("startAt", "endAt") WITH
+  &&) WHERE (status <> 'CANCELLED'::"AppointmentStatus")`.
 
 Run: `docker compose exec postgres psql -U agendamento -d agendamento_dev -c "\d+ \"Appointment\""`
 Expected: a saída lista `no_overlapping_appointments` como `Exclusion constraints`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/prisma/migrations
 git commit -m "feat: apply initial migration with anti-overlap exclusion constraint"
 ```
+
+DONE — commit `fb84c61`. **Tarefa 5 concluída.**
 
 ---
 
