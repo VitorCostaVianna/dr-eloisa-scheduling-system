@@ -311,6 +311,11 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
+  // Sem isto, hooks como PrismaService.onModuleDestroy (fecha o pool de conexões) só
+  // rodam em app.close() manual — nunca em SIGTERM/SIGINT reais (restart de container,
+  // deploy, Ctrl+C). Achado real do subagent de revisão pós-Tarefa 4.
+  app.enableShutdownHooks();
+
   app.useLogger(app.get(Logger));
   app.use(helmet());
   app.enableCors({
@@ -425,6 +430,16 @@ driver adapter tipo `@prisma/adapter-pg` passado pro `PrismaClient`) — quebra 
 env("DATABASE_URL") }` que a spec de design já define, e é recente demais pra ter documentação/tutoriais
 maduros (ruim pro objetivo de aprendizado do projeto). Por isso: **sempre pinar `prisma` e `@prisma/client` na
 mesma versão exata 6.x** (verificar a última 6.x estável antes de instalar, não confiar no dist-tag `latest`).
+
+**Também acrescentar a `apps/api/package.json`, dentro de `scripts`:**
+```json
+"postinstall": "prisma generate",
+```
+Sem isto, `node_modules/.prisma` (gitignorado, é build artifact) só existe enquanto alguém rodou `prisma
+generate` manualmente — um clone novo, CI, ou build de Docker quebra na primeira importação de
+`@prisma/client`. Achado real do subagent de revisão pós-Tarefa 4: o client gerado não sobrevivia a uma
+reinstalação limpa. Verificado apagando `node_modules/.prisma` e confirmando que `pnpm install` regenera
+sozinho via este hook.
 
 - [x] **Step 2: Criar `apps/api/src/prisma/prisma.service.ts`**
 
