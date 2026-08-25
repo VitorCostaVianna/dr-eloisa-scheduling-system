@@ -403,12 +403,12 @@ DONE — commit `1a2eccf`. **Tarefa 3 concluída.**
 - Produces: `PrismaService` injetável em qualquer módulo Nest futuro via `PrismaModule` (global), com
   `onModuleInit`/`onModuleDestroy` conectando e desconectando do pool.
 
-- [ ] **Step 1: Instalar Prisma e mover o schema**
+- [x] **Step 1: Instalar Prisma e mover o schema**
 
 Run:
 ```bash
-pnpm --filter api add @prisma/client
-pnpm --filter api add -D prisma
+pnpm --filter api add @prisma/client@6.19.3
+pnpm --filter api add -D prisma@6.19.3
 mkdir -p apps/api/prisma
 git mv prisma/schema.prisma apps/api/prisma/schema.prisma
 rmdir prisma
@@ -416,7 +416,17 @@ rmdir prisma
 Expected: `apps/api/prisma/schema.prisma` existe com o conteúdo já definido na spec; a pasta `prisma/` da raiz
 não existe mais.
 
-- [ ] **Step 2: Criar `apps/api/src/prisma/prisma.service.ts`**
+**IMPORTANTE — pin explícito de versão, não use `@latest` implícito:** rodar `pnpm --filter api add
+@prisma/client` e `add -D prisma` sem versão (2026-08-25) resolveu `@prisma/client@^7.10.0` mas `prisma@8.0.0-
+rc.10` — major version diferente entre CLI e client, e o `8.0.0-rc.10` puxou pacotes completamente estranhos
+(`workerd`, `alchemy` — ferramental de Cloudflare Workers, sem relação com Postgres local). Além disso, o
+Prisma 7 **remove suporte a `url` dentro de `datasource` no `schema.prisma`** (exige `prisma.config.ts` +
+driver adapter tipo `@prisma/adapter-pg` passado pro `PrismaClient`) — quebra o padrão `datasource { url =
+env("DATABASE_URL") }` que a spec de design já define, e é recente demais pra ter documentação/tutoriais
+maduros (ruim pro objetivo de aprendizado do projeto). Por isso: **sempre pinar `prisma` e `@prisma/client` na
+mesma versão exata 6.x** (verificar a última 6.x estável antes de instalar, não confiar no dist-tag `latest`).
+
+- [x] **Step 2: Criar `apps/api/src/prisma/prisma.service.ts`**
 
 ```typescript
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
@@ -434,7 +444,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 }
 ```
 
-- [ ] **Step 3: Criar `apps/api/src/prisma/prisma.module.ts`**
+- [x] **Step 3: Criar `apps/api/src/prisma/prisma.module.ts`**
 
 ```typescript
 import { Global, Module } from '@nestjs/common';
@@ -453,12 +463,18 @@ domínio (services, patients, appointments...). Deixar global evita reimportar `
 `*.module.ts` novo — é uma exceção justificada ao princípio geral de módulos explícitos, não o padrão do
 projeto (módulos de domínio continuam se comunicando só via eventos, nunca chamada direta).
 
-- [ ] **Step 4: Importar `PrismaModule` em `apps/api/src/app.module.ts`**
+- [x] **Step 4: Importar `PrismaModule` em `apps/api/src/app.module.ts`**
+
+(código real inclui também o `APP_GUARD`/`ThrottlerGuard` da correção pós-Tarefa 3 — ver Tarefa 3 acima; aqui
+só o import/registro do `PrismaModule` muda)
 
 ```typescript
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -471,25 +487,31 @@ import { PrismaModule } from './prisma/prisma.module';
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,
   ],
+  controllers: [AppController],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
 ```
 
-- [ ] **Step 5: Copiar `DATABASE_URL` real para `apps/api/.env` (não commitado) e gerar o client**
+- [x] **Step 5: Copiar `DATABASE_URL` real para `apps/api/.env` (não commitado) e gerar o client**
 
 Run:
 ```bash
 cp apps/api/.env.example apps/api/.env
 pnpm --filter api exec prisma generate
 ```
-Expected: `Generated Prisma Client` sem erro.
+Expected: `Generated Prisma Client` sem erro. Confirmado com Prisma 6.19.3 — `Generated Prisma Client (v6.19.3)`
+sem erro. Boot completo da API depois disso também confirmado (`PrismaModule dependencies initialized`,
+`curl` retornando 200).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/prisma apps/api/src/prisma apps/api/src/app.module.ts
 git commit -m "feat: integrate Prisma into NestJS api via PrismaService/PrismaModule"
 ```
+
+DONE — commit `cc10024`. **Tarefa 4 concluída.**
 
 ---
 
