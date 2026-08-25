@@ -594,6 +594,17 @@ git commit -m "feat: apply initial migration with anti-overlap exclusion constra
 
 DONE — commit `fb84c61`. **Tarefa 5 concluída.**
 
+**Correção pós-revisão (commit `ce74cdd`):** o subagent de revisão testou a constraint com inserts reais
+(inclusive concorrência de verdade entre duas sessões `psql`) e confirmou que ela funciona — mas achou que
+`startAt`/`endAt` (e todo campo `DateTime` do schema) tinham virado `timestamp(3) without time zone` no
+Postgres, não `timestamptz` como a spec de design exige (seção 9). Motivo: o Prisma mapeia `DateTime` pra
+`timestamp` sem fuso por padrão — precisa do modificador `@db.Timestamptz(3)` explícito em cada campo.
+Corrigido: `schema.prisma` atualizado, nova migration `20260825202015_timestamptz` gerada (`prisma migrate dev
+--create-only`) e **editada à mão** pra derrubar a exclusion constraint antes do `ALTER COLUMN` (ela depende
+de uma expressão sobre as colunas antigas) e recriá-la usando `tstzrange` em vez de `tsrange` (a função certa
+pra colunas com fuso). Reaplicada em `agendamento_dev` e `agendamento_test`, e o teste de overlap foi refeito
+manualmente pra confirmar que a constraint ainda barra sobreposição com os novos tipos.
+
 ---
 
 ### Tarefa 6: Provar que a constraint impede overlap sob concorrência (VOCÊ escreve esta)
