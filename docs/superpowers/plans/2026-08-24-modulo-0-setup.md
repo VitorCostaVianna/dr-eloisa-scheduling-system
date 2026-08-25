@@ -192,7 +192,7 @@ DONE — commit `2f6c87f`. **Tarefa 1 concluída.**
 ```yaml
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16.15
     restart: unless-stopped
     environment:
       POSTGRES_USER: agendamento
@@ -202,6 +202,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U agendamento -d agendamento_dev"]
       interval: 5s
@@ -211,6 +212,10 @@ services:
 volumes:
   postgres_data:
 ```
+
+`./docker/postgres-init/01-create-test-db.sql` (`CREATE DATABASE agendamento_test;`) roda automaticamente na
+primeira inicialização do volume — sem isso, `docker compose down -v` ou uma máquina nova perderia o banco de
+teste silenciosamente (achado do subagent de revisão pós-Tarefa 2).
 
 - [ ] **Step 2: Criar `.env.example` na raiz**
 
@@ -225,7 +230,13 @@ DATABASE_URL_TEST="postgresql://agendamento:agendamento_dev_only@localhost:5432/
 - [x] **Step 3: Subir o container e verificar saúde** — DONE (2026-08-25), `docker compose ps` mostrou
   `sistema_agendamento_dr_eloisa-postgres-1` como `Up ... (healthy)`.
 
-- [x] **Step 4: Criar a segunda database (`agendamento_test`)** — DONE, `CREATE DATABASE` confirmado.
+- [x] **Step 4: Criar a segunda database (`agendamento_test`)** — DONE. Inicialmente criada manualmente, depois
+  substituída por provisionamento automático: `docker/postgres-init/01-create-test-db.sql` montado em
+  `/docker-entrypoint-initdb.d` no `docker-compose.yml`, rodado pelo Postgres na primeira inicialização do
+  volume. Validado com `docker compose down -v && docker compose up -d` — os dois bancos (`agendamento_dev`,
+  `agendamento_test`) aparecem sozinhos num ambiente do zero, sem passo manual. (Achado do subagent de
+  revisão: sem isso, `docker compose down -v` ou uma máquina nova perderia o banco de teste silenciosamente.)
+  Imagem também fixada em `postgres:16.15` (era `postgres:16` flutuante) pela mesma revisão.
 
 - [x] **Step 5: Commit**
 
