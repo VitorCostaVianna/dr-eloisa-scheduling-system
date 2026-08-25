@@ -260,7 +260,11 @@ DONE — commit `ea3fa71`. **Tarefa 2 concluída.**
 - Produces: API NestJS rodando em `http://localhost:3001`, com `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`,
   Helmet e CORS explícito já ativos — todo módulo futuro herda isso, não precisa reconfigurar.
 
-- [ ] **Step 1: Rodar o Nest CLI dentro de `apps/`**
+DONE (2026-08-25) — Steps 1-6 executados exatamente como abaixo, sem desvio. Boot verificado: log JSON via
+pino confirmando `Nest application successfully started`, `curl http://localhost:3001` retornou `200`.
+Processo parado com `taskkill //F //IM node.exe` (Windows) antes do commit.
+
+- [x] **Step 1: Rodar o Nest CLI dentro de `apps/`**
 
 Run:
 ```bash
@@ -271,7 +275,7 @@ cd ..
 Expected: pasta `apps/api` criada com a estrutura padrão do Nest (`src/app.module.ts`, `src/main.ts`, etc.)
 e dependências instaladas.
 
-- [ ] **Step 2: Instalar dependências de segurança exigidas pelo projeto**
+- [x] **Step 2: Instalar dependências de segurança exigidas pelo projeto**
 
 Run:
 ```bash
@@ -280,7 +284,7 @@ pnpm --filter api add helmet class-validator class-transformer @nestjs/throttler
 Expected: instala sem erro (essas libs cobrem os requisitos de segurança do projeto: Helmet, DTO validation,
 rate limiting, logs estruturados, hash de senha).
 
-- [ ] **Step 3: Criar `apps/api/.env.example`**
+- [x] **Step 3: Criar `apps/api/.env.example`**
 
 ```
 PORT=3001
@@ -288,7 +292,7 @@ DATABASE_URL="postgresql://agendamento:agendamento_dev_only@localhost:5432/agend
 CORS_ORIGIN="http://localhost:3000"
 ```
 
-- [ ] **Step 4: Reescrever `apps/api/src/main.ts`**
+- [x] **Step 4: Reescrever `apps/api/src/main.ts`**
 
 ```typescript
 import { NestFactory } from '@nestjs/core';
@@ -319,7 +323,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-- [ ] **Step 5: Registrar `LoggerModule` (pino) e `ThrottlerModule` em `apps/api/src/app.module.ts`**
+- [x] **Step 5: Registrar `LoggerModule` (pino) e `ThrottlerModule` em `apps/api/src/app.module.ts`**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -341,18 +345,20 @@ import { ThrottlerModule } from '@nestjs/throttler';
 export class AppModule {}
 ```
 
-- [ ] **Step 6: Rodar a API e confirmar boot**
+- [x] **Step 6: Rodar a API e confirmar boot**
 
 Run: `pnpm --filter api dev`
 Expected: log estruturado (JSON via pino) mostrando a API subindo na porta 3001, sem erro.
 Pare o processo (Ctrl+C) antes do próximo passo.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api .gitignore
 git commit -m "feat: scaffold NestJS api with helmet, validation, throttler and pino logging"
 ```
+
+DONE — commit `1a2eccf`. **Tarefa 3 concluída.**
 
 ---
 
