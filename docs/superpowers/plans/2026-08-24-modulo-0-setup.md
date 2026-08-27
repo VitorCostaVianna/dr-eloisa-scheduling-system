@@ -771,12 +771,19 @@ Run: `pnpm --filter web dev`
 Expected: Next.js sobe em `http://localhost:3000`, página padrão do `create-next-app` carrega sem erro no
 navegador. Pare o processo antes do próximo passo.
 
-**Achado (não bloqueante):** a primeira tentativa de `next dev` crashou processando `globals.css` via
+**Achado (não bloqueante, corrigido após revisão):** `next dev` crashou processando `globals.css` via
 Turbopack com um erro de inicialização de DLL do Windows (`0xc0000142` — processo filho do Node morrendo ao
-spawnar). `next build` rodou limpo na sequência, e um reinício do `next dev` (depois de apagar `.next/`)
-serviu a página normalmente (`200` em 4.5s de compilação). Tratado como transitório/cold-start — não
-reproduziu numa segunda tentativa. Se voltar a acontecer de forma consistente num módulo futuro, vale
-investigar antivírus/interferência de processo no Windows, não assumir que é sempre "só tentar de novo".
+spawnar) **duas vezes seguidas** (confirmado por dois `next-panic-*.log` em `%TEMP%`, 68s de diferença — o
+registro original dizia "uma vez", estava impreciso). `next build` rodou limpo, e o `next dev` funcionou na
+terceira tentativa. Revisão de qualidade tentou reproduzir de novo depois (2 tentativas frescas, limitadas em
+tempo) — ambas funcionaram sem erro. Causa provável: algo Windows-específico no spawn de processo nativo do
+Turbopack pro worker de PostCSS (suspeita: antivírus/EDR). Não bloqueia o módulo, mas **não assumir
+"transitório" sem investigar** se voltar a acontecer de forma consistente num módulo futuro. Ver ADR 016 em
+`docs/decisions.md` pro registro completo.
+
+Revisão também achou um bug real (não relacionado ao crash): `--font-sans: var(--font-sans)` era
+autorreferente em `globals.css` (gerado pelo `shadcn init`), fazendo a fonte Geist nunca ser aplicada de
+verdade — corrigido pra `var(--font-geist-sans)`, confirmado no CSS compilado.
 
 - [x] **Step 4: Commit**
 

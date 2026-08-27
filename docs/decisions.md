@@ -347,9 +347,16 @@ qualquer IA/assistente).
 `apps/web/node_modules/next/dist/docs/` antes de assumir padrões de versões anteriores
 do Next.js — documentado como referência de memória, não só aqui. O Turbopack é o
 bundler padrão do `next dev` nessa versão (era opt-in antes) — `--webpack` reverte se
-necessário. Um crash pontual do Turbopack processando `globals.css` na primeira execução
-(erro de DLL do Windows, `0xc0000142`) não se repetiu numa segunda tentativa — tratado
-como transitório, não como motivo pra trocar de bundler ou de versão.
+necessário. Um crash do Turbopack processando `globals.css` (erro de DLL do Windows,
+`0xc0000142`, processo filho do Node morrendo ao spawnar) aconteceu **duas vezes
+seguidas** na primeira sessão (confirmado pelos timestamps de dois `next-panic-*.log` em
+`%TEMP%`, 68s de diferença) antes de funcionar — não uma vez só, como o commit original
+registrou. Revisão de qualidade tentou reproduzir de novo depois (2 tentativas frescas,
+cada uma com limite de tempo) e ambas funcionaram limpo. Causa provável: algo
+Windows-específico no jeito que o Turbopack spawna um processo nativo pro worker de
+PostCSS (suspeita: antivírus/EDR interceptando um `node.exe` recém-criado) — não
+totalmente explicado, mas não bloqueia o módulo. **Se voltar a acontecer de forma
+consistente num módulo futuro, não assumir "transitório" de novo — investigar a fundo.**
 
 ---
 
