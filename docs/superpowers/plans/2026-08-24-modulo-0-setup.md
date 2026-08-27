@@ -626,14 +626,16 @@ erro de exclusion violation do Postgres.
 **Pistas técnicas (não é a solução):**
 - Dispare as duas criações "ao mesmo tempo" com `Promise.allSettled([...])`, não `await` sequencial — sequencial
   nunca testaria concorrência de verdade, só ordem.
-- O erro do Prisma quando a constraint barra o insert é uma `Prisma.PrismaClientKnownRequestError`. Ela tem um
-  campo `.code` — para uma constraint que o Prisma não conhece nativamente (como um `EXCLUDE`, que não é
-  unique/foreign key/not-null), o código genérico é `'P2004'` ("A constraint failed on the database"), e
-  `error.meta` traz a mensagem original do Postgres, que inclui o nome da constraint
-  (`no_overlapping_appointments`) e o código nativo `23P01`. (`P2010` é só para erros de `$queryRaw`/
-  `$executeRaw` — não é o caso aqui, já que o teste usa `prisma.appointment.create()` normal.) Inspecione o
-  objeto do erro (`console.log(JSON.stringify(error, null, 2))`) durante o desenvolvimento do teste pra ver o
-  formato exato antes de escrever o `expect`.
+- **CORRIGIDO após rodar de verdade (2026-08-26):** o erro NÃO é um `PrismaClientKnownRequestError` com
+  `.code` (nem `P2004`, nem `P2010` — as duas suposições anteriores deste plano estavam erradas). Constraints
+  que o Prisma não reconhece nativamente (como `EXCLUDE`, que não é unique/FK/not-null/check) caem como
+  **`PrismaClientUnknownRequestError`** — sem `.code` estruturado nenhum (`error.code === undefined`). O
+  detalhe real (`23P01`, nome da constraint `no_overlapping_appointments`) só existe dentro de `error.message`
+  como texto puro (que inclui a query original e o erro nativo do Postgres). A forma certa de verificar:
+  `error.constructor.name === 'PrismaClientUnknownRequestError'` e `error.message` contendo o nome da
+  constraint. **Lição confirmada na prática:** `JSON.stringify(error)` esconde `.message` (não é enumerable em
+  `Error`) — pra inspecionar de verdade, logue `error.message`/`error.constructor.name` direto, nunca
+  `JSON.stringify(error)`.
 - Dois agendamentos que "colidem" não precisam ter o mesmo horário de início — teste também o caso de overlap
   parcial (ex: um das 14:00 às 15:00, outro das 14:30 às 15:30) pra provar que não é só um unique constraint
   disfarçado.
@@ -641,15 +643,29 @@ erro de exclusion violation do Postgres.
   sobrepõem devem ambos ser aceitos sem erro — senão o teste não prova nada (poderia estar falhando por
   qualquer outro motivo).
 
-- [ ] **Step 1: Configurar `DATABASE_URL` do teste**
+DONE (2026-08-26). Processo real: usuário tentou escrever o `beforeAll`/`afterAll` sozinho (travou, pediu pra
+eu fazer com explicação completa — funcionou de primeira, dados criados e limpos corretamente, confirmado
+com `SELECT count(*)` no banco). Depois tentou o primeiro `it` sozinho — erros reais e valiosos: `patientId`
+faltando (teria testado o bug errado, não a constraint), `await` sequencial em vez de concorrente (teria
+crashado antes do `allSettled`), `if` sem parênteses, comparação de objeto com string, contadores nunca
+inicializados (`NaN`), e ausência total de `expect(...)` (teste que nunca falha, o pior tipo de teste num
+projeto real). Revisei tudo, expliquei cada um, usuário pediu pra eu corrigir. Ver Step 2 pro código final.
+
+- [x] **Step 1: Configurar `DATABASE_URL` do teste**
 
 Antes de rodar, o processo de teste precisa apontar pro banco `agendamento_test` (Tarefa 5, Step 4), não pro
-de desenvolvimento — senão os testes escrevem dados de teste no banco "real". Use um `.env.test` em
-`apps/api/.env.test` com o mesmo valor de `DATABASE_URL_TEST` do `.env.example` da raiz, e carregue-o no
-começo do arquivo de teste com `dotenv-cli` ou lendo o arquivo manualmente antes de instanciar o
-`PrismaClient`.
+de desenvolvimento — senão os testes escrevem dados de teste no banco "real". `apps/api/.env.test` é
+gitignorado (mesma regra do `.env` normal), então existe um `apps/api/.env.test.example` **committado** —
+copie ele pra `.env.test` (`cp apps/api/.env.test.example apps/api/.env.test`) num clone novo. O teste carrega
+esse arquivo manualmente no topo (`dotenv`'s `config({ path: ... })`) antes de instanciar o `PrismaClient`.
 
-- [ ] **Step 2: Escrever o esqueleto do teste em `apps/api/test/appointment-overlap.e2e-spec.ts`**
+- [x] **Step 2: Escrever o esqueleto do teste em `apps/api/test/appointment-overlap.e2e-spec.ts`**
+
+(código final, depois de todo o ciclo de tentativa/correção — ver `apps/api/test/appointment-overlap.e2e-spec.ts`
+pro conteúdo completo e atualizado; principais diferenças do esqueleto original abaixo: `patientId` presente
+em todo `create`, promises capturadas sem `await` individual antes do `allSettled`, e a asserção do erro usa
+`error.constructor.name === 'PrismaClientUnknownRequestError'` + `error.message` contendo o nome da
+constraint — não `.code === 'P2004'`, que era uma suposição errada. Ver Step 3 abaixo.)
 
 ```typescript
 import { PrismaClient } from '@prisma/client';
@@ -686,24 +702,27 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
 });
 ```
 
-- [ ] **Step 3: Implementar os `TODO`s**
+- [x] **Step 3: Implementar os `TODO`s**
 
 Sem código pronto aqui — use as pistas técnicas acima. Quando travar de verdade (não só "não sei por onde
 começar", mas already tentou e não funcionou), me chame que reviso o que você escreveu antes de qualquer
 sugestão de código.
 
-- [ ] **Step 4: Rodar o teste e confirmar os três casos**
+- [x] **Step 4: Rodar o teste e confirmar os três casos**
 
 Run: `pnpm --filter api exec jest --config test/jest-e2e.json appointment-overlap`
 Expected: 2 testes passando — o de overlap (uma criação aceita, outra rejeitada pela constraint certa) e o
-de não-overlap (as duas aceitas).
+de não-overlap (as duas aceitas). DONE — `Tests: 2 passed, 2 total`, com asserções reais (não bodies vazios).
+Banco de teste confirmado limpo depois (`SELECT count(*)` = 0 em todas as tabelas envolvidas).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add apps/api/test
+git add apps/api/test apps/api/.env.test
 git commit -m "test: prove exclusion constraint prevents overlapping appointments under concurrency"
 ```
+
+DONE. **Tarefa 6 concluída.** Faltam Tarefas 7 (scaffold Next.js) e 8 (wiring final) pro Módulo 0 fechar.
 
 ---
 
@@ -801,11 +820,12 @@ git commit -m "chore: wire up root dev script and document local setup"
 
 ## Definição de pronto do Módulo 0
 
-- [ ] `pnpm dev` sobe api + web juntos sem erro
-- [ ] `docker compose ps` mostra Postgres `healthy`
-- [ ] A migration com `no_overlapping_appointments` está aplicada em `agendamento_dev` e `agendamento_test`
-- [ ] O teste da Tarefa 6 passa e prova (não assume) que a constraint bloqueia overlap sob concorrência real
-- [ ] Nenhum segredo (senha do Postgres, etc.) commitado — só `.env.example`
+- [ ] `pnpm dev` sobe api + web juntos sem erro — **pendente**, Tarefas 7 (scaffold Next.js) e 8 (wiring final)
+  ainda não foram feitas
+- [x] `docker compose ps` mostra Postgres `healthy`
+- [x] A migration com `no_overlapping_appointments` está aplicada em `agendamento_dev` e `agendamento_test`
+- [x] O teste da Tarefa 6 passa e prova (não assume) que a constraint bloqueia overlap sob concorrência real
+- [x] Nenhum segredo (senha do Postgres, etc.) commitado — só `.env.example`
 
 Próximo módulo (Auth) começa com seu próprio ciclo de brainstorm → spec → plano, já com api/web/banco rodando
 de verdade.

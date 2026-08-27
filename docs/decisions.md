@@ -135,7 +135,8 @@ de disponibilidade).
 
 ## 007 — Prevenção de conflito de horário via exclusion constraint do Postgres
 
-**Data:** 2026-08-24 (decisão), 2026-08-25 (implementada e testada sob concorrência real)
+**Data:** 2026-08-24 (decisão), 2026-08-25 (implementada e testada sob concorrência real
+via SQL direto), 2026-08-26 (testada via Prisma Client, formato de erro corrigido)
 **Status:** Aceita, verificada
 
 **Contexto:** É o núcleo técnico do projeto — duas pessoas podem tentar marcar o mesmo
@@ -145,8 +146,21 @@ uma colisão de horário exato).
 **Decisão:** `EXCLUDE USING gist ("professionalId" WITH =, tstzrange("startAt","endAt")
 WITH &&) WHERE (status <> 'CANCELLED')` — o banco recusa fisicamente um INSERT que
 sobreponha outro do mesmo profissional, mesmo sob concorrência real. Requer extensão
-`btree_gist`. Erro de violação chega na aplicação como `PrismaClientKnownRequestError`
-código `P2004`, tratado como 409 pro paciente.
+`btree_gist`.
+
+**Como o erro chega na aplicação (corrigido depois de testar de verdade):** via Prisma
+Client, uma violação desta constraint é um **`PrismaClientUnknownRequestError`**, não
+`PrismaClientKnownRequestError` — o Prisma só classifica constraints que reconhece
+nativamente (unique, FK, not-null) com um `.code` estruturado tipo `P2002`/`P2003`; um
+`EXCLUDE` cai como erro "desconhecido", sem `.code`. O código nativo do Postgres
+(`23P01`) e o nome da constraint só existem dentro de `error.message` como texto. Duas
+suposições anteriores neste mesmo projeto (`P2004`, depois `P2010`) estavam erradas —
+corrigido só depois de rodar `prisma.appointment.create()` de verdade em concorrência e
+inspecionar o erro real (`error.message`/`error.constructor.name`, nunca
+`JSON.stringify(error)`, que esconde `.message` por ela não ser enumerable em `Error`).
+O módulo de `appointments` (futuro) precisa checar `error.constructor.name ===
+'PrismaClientUnknownRequestError'` + `error.message.includes('no_overlapping_appointments')`
+pra mapear isso num 409 pro paciente — não pode confiar num `.code`.
 
 **Alternativas consideradas:** (a) `UNIQUE(professionalId, startAt)` — rejeitada, não
 pega overlap parcial com durações diferentes; (b) transação/lock em código
