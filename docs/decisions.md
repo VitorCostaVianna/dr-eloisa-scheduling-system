@@ -328,6 +328,31 @@ virar um problema real.
 
 ---
 
+## 016 — `apps/web` na versão mais recente do Next.js (16.x), não fixada num major anterior
+
+**Data:** 2026-08-26
+**Status:** Aceita
+
+**Contexto:** `create-next-app@latest` resolveu Next.js 16.3.3 + React 19.2.8 + Tailwind
+4.3.3 — diferente do Prisma (ADR 014), aqui não havia motivo prático pra fixar numa
+versão anterior (sem mismatch de major entre pacotes, sem feature quebrando um padrão
+já documentado no design spec).
+
+**Decisão:** Manter a versão mais recente resolvida pelo `create-next-app`, mesmo
+sabendo que o Next 16 tem mudanças reais de breaking change em relação a versões
+anteriores (o próprio framework gera um `apps/web/AGENTS.md` avisando disso pra
+qualquer IA/assistente).
+
+**Consequências:** Qualquer código de frontend real (módulos futuros) precisa consultar
+`apps/web/node_modules/next/dist/docs/` antes de assumir padrões de versões anteriores
+do Next.js — documentado como referência de memória, não só aqui. O Turbopack é o
+bundler padrão do `next dev` nessa versão (era opt-in antes) — `--webpack` reverte se
+necessário. Um crash pontual do Turbopack processando `globals.css` na primeira execução
+(erro de DLL do Windows, `0xc0000142`) não se repetiu numa segunda tentativa — tratado
+como transitório, não como motivo pra trocar de bundler ou de versão.
+
+---
+
 ## Índice rápido
 
 | # | Decisão | Área |
@@ -347,3 +372,4 @@ virar um problema real.
 | 013 | Baseline de segurança desde o boot | Backend/Segurança |
 | 014 | Prisma pinado em 6.19.3 | Infra |
 | 015 | Postgres local via Docker Compose | Infra |
+| 016 | `apps/web` no Next.js 16.x (mais recente) | Frontend |

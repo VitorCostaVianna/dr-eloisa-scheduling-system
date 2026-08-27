@@ -735,7 +735,8 @@ DONE. **Tarefa 6 concluída.** Faltam Tarefas 7 (scaffold Next.js) e 8 (wiring f
 - Produces: app Next.js rodando em `http://localhost:3000`, App Router + Tailwind + shadcn/ui prontos —
   nenhuma página real ainda (fica para o módulo da página pública de agendamento).
 
-- [ ] **Step 1: Rodar create-next-app dentro de `apps/`**
+- [x] **Step 1: Rodar create-next-app dentro de `apps/`** — DONE (2026-08-26), resolveu Next.js 16.3.3 +
+  React 19.2.8 + Tailwind 4.3.3.
 
 Run:
 ```bash
@@ -745,7 +746,13 @@ cd ..
 ```
 Expected: pasta `apps/web` criada com App Router, Tailwind e ESLint configurados.
 
-- [ ] **Step 2: Inicializar shadcn/ui**
+**Nota importante — Next 16 tem breaking changes reais:** o `create-next-app` gera automaticamente
+`apps/web/AGENTS.md` avisando que APIs/convenções podem divergir do que qualquer IA já treinou antes —
+consultar `apps/web/node_modules/next/dist/docs/` antes de escrever código de frontend de verdade (módulos
+futuros, não este). Turbopack também virou o bundler **padrão** do `next dev` no Next 16 (antes era opt-in) —
+`--webpack` é a flag pra voltar ao bundler antigo se precisar.
+
+- [x] **Step 2: Inicializar shadcn/ui**
 
 Run:
 ```bash
@@ -755,20 +762,30 @@ cd ../..
 ```
 Expected: cria `apps/web/components.json` e ajusta `apps/web/src/app/globals.css` com as variáveis de tema do
 shadcn. Se o CLI perguntar algo (estilo, cor base), aceite os valores padrão por enquanto — a identidade
-visual da clínica entra no módulo de design da página pública.
+visual da clínica entra no módulo de design da página pública. DONE — criou `components.json`,
+`src/components/ui/button.tsx`, `src/lib/utils.ts`, ajustou `globals.css`.
 
-- [ ] **Step 3: Rodar o dev server e confirmar boot**
+- [x] **Step 3: Rodar o dev server e confirmar boot**
 
 Run: `pnpm --filter web dev`
 Expected: Next.js sobe em `http://localhost:3000`, página padrão do `create-next-app` carrega sem erro no
 navegador. Pare o processo antes do próximo passo.
 
-- [ ] **Step 4: Commit**
+**Achado (não bloqueante):** a primeira tentativa de `next dev` crashou processando `globals.css` via
+Turbopack com um erro de inicialização de DLL do Windows (`0xc0000142` — processo filho do Node morrendo ao
+spawnar). `next build` rodou limpo na sequência, e um reinício do `next dev` (depois de apagar `.next/`)
+serviu a página normalmente (`200` em 4.5s de compilação). Tratado como transitório/cold-start — não
+reproduziu numa segunda tentativa. Se voltar a acontecer de forma consistente num módulo futuro, vale
+investigar antivírus/interferência de processo no Windows, não assumir que é sempre "só tentar de novo".
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/web
 git commit -m "feat: scaffold Next.js app with Tailwind and shadcn/ui"
 ```
+
+DONE — commit `12387f5`. **Tarefa 7 concluída.**
 
 ---
 
