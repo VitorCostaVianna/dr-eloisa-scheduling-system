@@ -807,12 +807,17 @@ DONE — commit `12387f5`. **Tarefa 7 concluída.**
 - Produces: `pnpm dev` na raiz sobe `apps/api` (porta 3001) e `apps/web` (porta 3000) juntos via Turborepo —
   é o comando que abre qualquer sessão de trabalho a partir de agora.
 
-- [ ] **Step 1: Confirmar que `apps/api/package.json` e `apps/web/package.json` têm um script `dev`**
+- [x] **Step 1: Confirmar que `apps/api/package.json` e `apps/web/package.json` têm um script `dev`**
 
 Nest CLI e create-next-app já geram isso por padrão (`nest start --watch` e `next dev`, respectivamente) —
 só confira que os nomes dos scripts são exatamente `dev`, já que é o que `turbo.json` (Tarefa 1) espera.
 
-- [ ] **Step 2: Criar `README.md` na raiz**
+**Achado real:** `apps/api/package.json` (gerado pelo Nest CLI) só tinha `start:dev`, não `dev` — o
+`turbo run dev` pula silenciosamente (sem erro) qualquer pacote sem esse nome exato de script. Sem essa
+checagem, `pnpm dev` na raiz subiria só o `web`, nunca a `api`, e pareceria que "funcionou". Adicionado
+`"dev": "nest start --watch"` ao lado do `start:dev` já existente.
+
+- [x] **Step 2: Criar `README.md` na raiz**
 
 ```markdown
 # Sistema de Agendamento — Clínica Dra. Eloísa
@@ -828,28 +833,42 @@ Monorepo (pnpm + Turborepo): `apps/api` (NestJS) + `apps/web` (Next.js) + `packa
 5. `pnpm dev` — sobe api (`:3001`) e web (`:3000`) juntos.
 ```
 
-- [ ] **Step 3: Smoke test — subir tudo junto pela raiz**
+- [x] **Step 3: Smoke test — subir tudo junto pela raiz**
 
 Run: `pnpm dev`
 Expected: logs de `api` e `web` intercalados no mesmo terminal (Turborepo prefixa cada linha com o nome do
 app), ambos servindo sem erro. Acesse `http://localhost:3000` e `http://localhost:3001` para confirmar.
 Pare com Ctrl+C.
 
-- [ ] **Step 4: Commit final do módulo**
+DONE, mas exigiu mais tentativas do que o esperado — nenhuma delas por bug de código:
+1. Um `.next` de build de produção (`next build`, deixado da correção do `--font-sans` na Tarefa 7) causou
+   404 fantasma em `/` quando misturado com `next dev` depois. Resolvido apagando `.next`.
+2. O container do Postgres tinha parado sozinho entre sessões (`Exited (0)`, sem `docker compose down`
+   explícito) — resolvido com `docker compose up -d` de novo.
+3. O tempo de primeira compilação/boot nesta máquina varia muito (4s a 35s+ pro Next, tempo parecido pro
+   Nest) — timeouts curtos de `curl` liam isso como falha. Resolvido esperando de verdade (poll no log pela
+   linha de "pronto", não um `sleep` fixo curto).
+
+Confirmado no final: `curl http://localhost:3000` e `curl http://localhost:3001` retornando `200`
+simultaneamente, com os dois processos subindo via `pnpm dev` na raiz. Detalhes registrados na memória
+(`reference-local-dev-env`) pra não precisar reinvestigar num módulo futuro.
+
+- [x] **Step 4: Commit final do módulo**
 
 ```bash
 git add README.md apps/api/package.json apps/web/package.json
 git commit -m "chore: wire up root dev script and document local setup"
 ```
 
+DONE — commit `b0000b8`. **Tarefa 8 concluída — Módulo 0 completo.**
+
 ## Definição de pronto do Módulo 0
 
-- [ ] `pnpm dev` sobe api + web juntos sem erro — **pendente**, Tarefas 7 (scaffold Next.js) e 8 (wiring final)
-  ainda não foram feitas
+- [x] `pnpm dev` sobe api + web juntos sem erro
 - [x] `docker compose ps` mostra Postgres `healthy`
 - [x] A migration com `no_overlapping_appointments` está aplicada em `agendamento_dev` e `agendamento_test`
 - [x] O teste da Tarefa 6 passa e prova (não assume) que a constraint bloqueia overlap sob concorrência real
 - [x] Nenhum segredo (senha do Postgres, etc.) commitado — só `.env.example`
 
-Próximo módulo (Auth) começa com seu próprio ciclo de brainstorm → spec → plano, já com api/web/banco rodando
-de verdade.
+**Módulo 0 fechado (2026-08-27).** Próximo módulo (Auth) começa com seu próprio ciclo de brainstorm → spec →
+plano, já com api/web/banco rodando de verdade.
