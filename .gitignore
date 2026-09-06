@@ -7,3 +7,5 @@ dist/
 .next/
 .turbo/
 *.log
+.worktrees/
+.superpowers/
