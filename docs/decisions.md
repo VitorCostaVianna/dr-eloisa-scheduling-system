@@ -360,6 +360,43 @@ consistente num módulo futuro, não assumir "transitório" de novo — investig
 
 ---
 
+## 017 — Correções técnicas na spec do módulo Auth: `@nestjs/jwt` (dependência, versão) e hash do refresh token
+
+**Data:** 2026-09-04
+**Status:** Aceita
+
+**Contexto:** A spec de design do módulo Auth
+(`docs/superpowers/specs/2026-09-04-auth-module-design.md`) continha duas imprecisões encontradas ao detalhar
+o plano de implementação: (1) afirmava que `@nestjs/jwt` já estava instalado junto com `argon2` e
+`@nestjs/throttler` — não estava; (2) propunha reaproveitar `argon2` para hashear o refresh token armazenado em
+`RefreshToken.tokenHash`, mas argon2 é intencionalmente não-determinístico (salt aleatório por chamada), o que
+torna impossível localizar o registro certo por igualdade no banco a partir do valor recebido do cliente. Uma
+terceira imprecisão surgiu já na execução da Tarefa 1, não prevista pela spec nem pelo plano: `pnpm add
+@nestjs/jwt` resolveu `@nestjs/jwt@^12.0.1` — sua `peerDependencies` aceita `@nestjs/common@^11.0.0` (não é o
+mismatch de major que o plano já mandava checar), mas a versão 12.x é publicada como ESM puro
+(`"type": "module"`, sem build CJS), enquanto `apps/api` compila/roda como CommonJS (`ts-jest`, sem `"type":
+"module"`). Confirmado concretamente: um teste descartável importando `JwtModule`/`JwtService` falhou com
+`SyntaxError: Cannot use import statement outside a module` em `@nestjs/jwt/dist/index.js:1`.
+
+**Decisão:** `@nestjs/jwt` entra como dependência nova do módulo, mas pinada em `11.0.2` (não a versão mais
+recente resolvida automaticamente) — confirmado via `npm view` que não tem `"type": "module"` (logo é CJS) e
+que sua `peerDependencies` ainda cobre `@nestjs/common@^11.0.0`. Reconfirmado com o mesmo teste descartável
+passando contra `11.0.2`. `RefreshToken.tokenHash` usa SHA-256 (determinístico) em vez de argon2 — apropriado
+aqui porque o valor de entrada já é um segredo de alta entropia gerado por `crypto.randomBytes(32)`, não uma
+senha adivinhável por força bruta (o cenário que justifica o custo do argon2, mantido para
+`User.passwordHash`).
+
+**Consequências:** Nenhuma migração adicional necessária além da já prevista para a tabela `RefreshToken`.
+Fica registrado como lembrete geral: specs de design descrevem a intenção arquitetural, não substituem a
+checagem de dependências/algoritmos feita ao detalhar o plano de implementação — e essa checagem precisa
+cobrir formato de módulo (ESM vs. CJS), não só compatibilidade de major version, porque um pacote pode ter
+major compatível e ainda assim quebrar em runtime por publicar só ESM. O `package.json` usa `"@nestjs/jwt":
+"^11.0.2"` (mesmo estilo de range dos outros `@nestjs/*` do arquivo) — um `pnpm update` futuro sem pin exato
+poderia re-resolver para a linha 12.x ESM-only; vale checar isso deliberadamente antes de atualizar essa
+dependência específica.
+
+---
+
 ## Índice rápido
 
 | # | Decisão | Área |
@@ -380,3 +417,4 @@ consistente num módulo futuro, não assumir "transitório" de novo — investig
 | 014 | Prisma pinado em 6.19.3 | Infra |
 | 015 | Postgres local via Docker Compose | Infra |
 | 016 | `apps/web` no Next.js 16.x (mais recente) | Frontend |
+| 017 | Correções técnicas do módulo Auth (`@nestjs/jwt` pinado em 11.0.2 por ESM, hash SHA-256 do refresh token) | Backend/Segurança |

@@ -37,20 +37,35 @@ enum CancelledBy {
 }
 
 model User {
-  id     String @id @default(uuid())
-  email  String @unique
+  id           String @id @default(uuid())
+  email        String @unique
   passwordHash String
-  role   Role   @default(DENTIST)
+  role         Role   @default(DENTIST)
 
-  // Hash do refresh token atual (nunca o token em texto puro) — permite revogar no
-  // logout e detectar reuso de token roubado.
-  refreshTokenHash      String?
-  refreshTokenExpiresAt DateTime? @db.Timestamptz(3)
-
-  professional Professional?
+  professional  Professional?
+  refreshTokens RefreshToken[]
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// Cada linha é uma sessão (refresh token) ativa ou já revogada de um usuário. Tabela
+// própria em vez de um campo único em User — permite, sem migração futura, virar
+// multi-sessão (múltiplos dispositivos logados ao mesmo tempo) só mudando a regra de
+// código que hoje revoga tudo a cada novo login (ver AuthService.login).
+model RefreshToken {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // SHA-256 do valor do token, não argon2 — ver ADR 017 em docs/decisions.md.
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([userId])
 }
 
 model Professional {
