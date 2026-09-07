@@ -65,7 +65,7 @@ no ADR):
 - Produces: model Prisma `RefreshToken` (`id`, `userId`, `tokenHash`, `expiresAt`, `revokedAt`, `createdAt`) e
   `User.refreshTokens: RefreshToken[]`, consumidos pela Tarefa 2 (`AuthService`) via `PrismaService`.
 
-- [ ] **Step 1: Instalar as dependências novas**
+- [x] **Step 1: Instalar as dependências novas**
 
 Run:
 ```bash
@@ -77,7 +77,7 @@ compatível com `@nestjs/common@^11.0.1` já instalado (mesma major do Nest 11) 
 diferente do resto do `@nestjs/*`, pare e pin explicitamente a versão compatível antes de seguir (mesma lição
 da ADR 014 sobre Prisma).
 
-- [ ] **Step 2: Editar `apps/api/prisma/schema.prisma`** — trocar o bloco de `User` por este (remove os dois
+- [x] **Step 2: Editar `apps/api/prisma/schema.prisma`** — trocar o bloco de `User` por este (remove os dois
 campos de refresh token, adiciona a relação) e acrescentar o novo model logo depois de `User`:
 
 ```prisma
@@ -114,7 +114,7 @@ model RefreshToken {
 }
 ```
 
-- [ ] **Step 3: Gerar e aplicar a migration**
+- [x] **Step 3: Gerar e aplicar a migration**
 
 Run:
 ```bash
@@ -126,7 +126,7 @@ os índices, e aplica direto em `agendamento_dev` (`Your database is now in sync
 da Tarefa 5 do Módulo 0, **não precisa editar o SQL gerado à mão** — não há nenhuma constraint que o Prisma não
 saiba expressar aqui.
 
-- [ ] **Step 4: Aplicar a mesma migration no banco de teste**
+- [x] **Step 4: Aplicar a mesma migration no banco de teste**
 
 Run (ajuste a sintaxe de variável de ambiente conforme o shell — exemplo em bash):
 ```bash
@@ -134,7 +134,7 @@ DATABASE_URL="$DATABASE_URL_TEST" pnpm --filter api exec prisma migrate deploy
 ```
 Expected: `All migrations have been successfully applied.` em `agendamento_test`.
 
-- [ ] **Step 5: Registrar a correção em `docs/decisions.md`**
+- [x] **Step 5: Registrar a correção em `docs/decisions.md`**
 
 Adicionar ao final do arquivo (antes da tabela "Índice rápido"), seguindo o formato das entradas anteriores:
 
@@ -164,7 +164,7 @@ de dependências/algoritmos feita ao detalhar o plano de implementação.
 Também adicionar `| 017 | Correções técnicas do módulo Auth (`@nestjs/jwt`, hash SHA-256 do refresh token) |
 Backend/Segurança |` à tabela "Índice rápido" no final do arquivo.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/prisma apps/api/package.json pnpm-lock.yaml docs/decisions.md
@@ -188,7 +188,7 @@ git commit -m "fix: add RefreshToken table and nestjs/jwt dependency for auth mo
   `AuthService.refresh(rawRefreshToken): Promise<AuthTokens>`, `AuthService.logout(rawRefreshToken): Promise<void>`
   — consumidos pelo `AuthController` na Tarefa 3.
 
-- [ ] **Step 1: Criar os tipos compartilhados**
+- [x] **Step 1: Criar os tipos compartilhados**
 
 `apps/api/src/auth/types/jwt-payload.type.ts`:
 ```typescript
@@ -209,7 +209,7 @@ export interface AuthTokens {
 }
 ```
 
-- [ ] **Step 2: Escrever os testes em `apps/api/src/auth/auth.service.spec.ts`** (arquivo completo, já pronto —
+- [x] **Step 2: Escrever os testes em `apps/api/src/auth/auth.service.spec.ts`** (arquivo completo, já pronto —
 não precisa alterar nesta tarefa, só fazer passar):
 
 ```typescript
@@ -382,12 +382,12 @@ describe('AuthService', () => {
 });
 ```
 
-- [ ] **Step 3: Rodar os testes e confirmar que falham por falta de implementação**
+- [x] **Step 3: Rodar os testes e confirmar que falham por falta de implementação**
 
 Run: `pnpm --filter api test auth.service`
 Expected: FAIL — `AuthService` ainda não existe (ou métodos não implementados).
 
-- [ ] **Step 4: Criar o esqueleto em `apps/api/src/auth/auth.service.ts`**
+- [x] **Step 4: Criar o esqueleto em `apps/api/src/auth/auth.service.ts`**
 
 ```typescript
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -473,17 +473,17 @@ Os três métodos com `TODO` (`login`, `refresh`, `logout`) são a lógica de ne
 usando as pistas nos comentários e os testes do Step 2 como especificação exata do comportamento esperado.
 `hashToken` e `issueTokens` já vêm prontos (são só encanamento em torno do que os `TODO`s decidem).
 
-- [ ] **Step 5: Implementar os `TODO`s**
+- [x] **Step 5: Implementar os `TODO`s**
 
 Sem código pronto aqui. Quando travar de verdade (já tentou e não funcionou, não só "não sei por onde
 começar"), peça revisão do que foi escrito antes de qualquer sugestão de código.
 
-- [ ] **Step 6: Rodar os testes e confirmar que todos passam**
+- [x] **Step 6: Rodar os testes e confirmar que todos passam**
 
 Run: `pnpm --filter api test auth.service`
 Expected: `Tests: 9 passed, 9 total` (3 em `login`, 4 em `refresh`, 2 em `logout`).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api/src/auth/auth.service.ts apps/api/src/auth/auth.service.spec.ts apps/api/src/auth/types
@@ -511,7 +511,7 @@ git commit -m "feat: implement AuthService login, refresh rotation and logout"
 - Produces: endpoints HTTP `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`;
   decorator `@Public()` reexportável para módulos futuros marcarem rotas sem autenticação.
 
-- [ ] **Step 1: Adicionar `JWT_SECRET` aos arquivos de ambiente**
+- [x] **Step 1: Adicionar `JWT_SECRET` aos arquivos de ambiente**
 
 `apps/api/.env.example` (acrescentar):
 ```
@@ -525,7 +525,7 @@ JWT_SECRET="test-only-secret"
 
 Copiar o valor para `apps/api/.env` e `apps/api/.env.test` locais (não commitados) também.
 
-- [ ] **Step 2: Criar `apps/api/src/auth/dto/login.dto.ts`**
+- [x] **Step 2: Criar `apps/api/src/auth/dto/login.dto.ts`**
 
 ```typescript
 import { IsEmail, IsString, MinLength } from 'class-validator';
@@ -540,7 +540,7 @@ export class LoginDto {
 }
 ```
 
-- [ ] **Step 3: Criar `apps/api/src/auth/decorators/public.decorator.ts`**
+- [x] **Step 3: Criar `apps/api/src/auth/decorators/public.decorator.ts`**
 
 ```typescript
 import { SetMetadata } from '@nestjs/common';
@@ -549,7 +549,7 @@ export const IS_PUBLIC_KEY = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 ```
 
-- [ ] **Step 4: Criar `apps/api/src/auth/guards/jwt-auth.guard.ts`**
+- [x] **Step 4: Criar `apps/api/src/auth/guards/jwt-auth.guard.ts`**
 
 ```typescript
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
@@ -591,7 +591,7 @@ export class JwtAuthGuard implements CanActivate {
 }
 ```
 
-- [ ] **Step 5: Criar `apps/api/src/auth/types/express.d.ts`** (augmenta o tipo `Request` do Express para
+- [x] **Step 5: Criar `apps/api/src/auth/types/express.d.ts`** (augmenta o tipo `Request` do Express para
 aceitar `request.user`, usado no guard acima e no controller)
 
 ```typescript
@@ -608,7 +608,7 @@ declare global {
 export {};
 ```
 
-- [ ] **Step 6: Criar `apps/api/src/auth/cookie.util.ts`**
+- [x] **Step 6: Criar `apps/api/src/auth/cookie.util.ts`**
 
 ```typescript
 import { Response } from 'express';
@@ -642,7 +642,7 @@ export function clearAuthCookies(res: Response): void {
 }
 ```
 
-- [ ] **Step 7: Criar `apps/api/src/auth/auth.controller.ts`**
+- [x] **Step 7: Criar `apps/api/src/auth/auth.controller.ts`**
 
 ```typescript
 import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
@@ -695,7 +695,7 @@ export class AuthController {
 }
 ```
 
-- [ ] **Step 8: Criar `apps/api/src/auth/auth.module.ts`**
+- [x] **Step 8: Criar `apps/api/src/auth/auth.module.ts`**
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -727,7 +727,7 @@ export class AuthModule {}
 O mesmo padrão de "falhar rápido se a env var não estiver definida" já usado em `main.ts` para `CORS_ORIGIN`
 (Módulo 0, Tarefa 3) — evita subir a API com um `JwtModule` configurado com `secret: undefined`.
 
-- [ ] **Step 9: Registrar `cookie-parser` em `apps/api/src/main.ts`** (adicionar a linha destacada, sem mexer
+- [x] **Step 9: Registrar `cookie-parser` em `apps/api/src/main.ts`** (adicionar a linha destacada, sem mexer
 no resto do arquivo)
 
 ```typescript
@@ -767,7 +767,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-- [ ] **Step 10: Importar `AuthModule` em `apps/api/src/app.module.ts`** (acrescentar ao array `imports`,
+- [x] **Step 10: Importar `AuthModule` em `apps/api/src/app.module.ts`** (acrescentar ao array `imports`,
 mantendo tudo que já existe)
 
 ```typescript
@@ -797,14 +797,14 @@ import { AuthModule } from './auth/auth.module';
 export class AppModule {}
 ```
 
-- [ ] **Step 11: Rodar a API e confirmar boot**
+- [x] **Step 11: Rodar a API e confirmar boot**
 
 Run: `pnpm --filter api dev`
 Expected: boot limpo (log pino confirmando `Nest application successfully started`). Se der erro
 `JWT_SECRET precisa estar definida`, confirme que `apps/api/.env` tem a linha do Step 1. Pare o processo antes
 do próximo passo.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add apps/api/src/auth apps/api/src/main.ts apps/api/src/app.module.ts apps/api/.env.example apps/api/.env.test.example
@@ -824,7 +824,7 @@ git commit -m "feat: wire AuthModule with JWT guard, cookies and rate-limited lo
 - Consumes: `PrismaClient` direto (mesmo padrão do teste de overlap do Módulo 0 — script roda fora do Nest).
 - Produces: um `User` com `role = DENTIST` em `agendamento_dev`, usável para login manual/e2e.
 
-- [ ] **Step 1: Acrescentar credenciais do seed a `apps/api/.env.example`**
+- [x] **Step 1: Acrescentar credenciais do seed a `apps/api/.env.example`**
 
 ```
 SEED_DENTIST_EMAIL="dentista@example.com"
@@ -833,7 +833,7 @@ SEED_DENTIST_PASSWORD="mude-esta-senha-123"
 
 Copiar para `apps/api/.env` local com uma senha real (não commitada).
 
-- [ ] **Step 2: Criar `apps/api/prisma/seed.ts`**
+- [x] **Step 2: Criar `apps/api/prisma/seed.ts`**
 
 ```typescript
 import 'dotenv/config';
@@ -876,7 +876,7 @@ main()
 `upsert` (não `create`) torna o script seguro pra rodar mais de uma vez — reexecutar só atualiza a senha do
 mesmo email, não duplica usuário.
 
-- [ ] **Step 3: Configurar o `prisma seed` em `apps/api/package.json`**
+- [x] **Step 3: Configurar o `prisma seed` em `apps/api/package.json`**
 
 Acrescentar (nível raiz do JSON, ao lado de `scripts`):
 ```json
@@ -890,7 +890,7 @@ E em `scripts`:
 "db:seed": "prisma db seed"
 ```
 
-- [ ] **Step 4: Rodar o seed e confirmar**
+- [x] **Step 4: Rodar o seed e confirmar**
 
 Run: `pnpm --filter api db:seed`
 Expected: `Usuária seedada: dentista@example.com (id ...)` no console. Confirme direto no banco:
@@ -898,7 +898,7 @@ Expected: `Usuária seedada: dentista@example.com (id ...)` no console. Confirme
 Run: `docker compose exec postgres psql -U agendamento -d agendamento_dev -c "SELECT email, role FROM \"User\";"`
 Expected: uma linha com o email do seed e `role = DENTIST`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/prisma/seed.ts apps/api/package.json apps/api/.env.example
@@ -917,7 +917,7 @@ git commit -m "feat: add dentist user seed script"
   (mesmo padrão de `appointment-overlap.e2e-spec.ts`).
 - Produces: nada consumido por tarefas futuras — é uma prova end-to-end, não uma dependência.
 
-- [ ] **Step 1: Criar `apps/api/test/auth.e2e-spec.ts`**
+- [x] **Step 1: Criar `apps/api/test/auth.e2e-spec.ts`**
 
 ```typescript
 import { config } from 'dotenv';
@@ -1004,12 +1004,12 @@ describe('Auth (e2e)', () => {
 });
 ```
 
-- [ ] **Step 2: Rodar o teste**
+- [x] **Step 2: Rodar o teste**
 
 Run: `pnpm --filter api exec jest --config test/jest-e2e.json auth`
 Expected: `Tests: 3 passed, 3 total`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/api/test/auth.e2e-spec.ts
@@ -1031,7 +1031,7 @@ git commit -m "test: prove full login/refresh/logout flow end-to-end"
   `apiFetch(path, init): Promise<Response>` (retry automático de refresh em 401) — consumidos pelas páginas da
   Tarefa 7.
 
-- [ ] **Step 1: Criar `apps/web/.env.local.example`**
+- [x] **Step 1: Criar `apps/web/.env.local.example`**
 
 ```
 NEXT_PUBLIC_API_URL="http://localhost:3001"
@@ -1039,7 +1039,7 @@ NEXT_PUBLIC_API_URL="http://localhost:3001"
 
 Copiar para `apps/web/.env.local` local (Next.js carrega esse arquivo automaticamente, sem `dotenv/config`).
 
-- [ ] **Step 2: Criar `apps/web/src/proxy.ts`**
+- [x] **Step 2: Criar `apps/web/src/proxy.ts`**
 
 Nome do arquivo e da função são exigidos pelo Next.js 16 — `middleware.ts`/`middleware()` está descontinuado
 nessa versão (renomeado para `proxy.ts`/`proxy()`, confirmado em
@@ -1066,7 +1066,7 @@ export const config = {
 };
 ```
 
-- [ ] **Step 3: Criar `apps/web/src/lib/auth.ts`**
+- [x] **Step 3: Criar `apps/web/src/lib/auth.ts`**
 
 ```typescript
 import { cache } from 'react';
@@ -1099,7 +1099,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
 chamada a `/auth/me` em vez de repetir a requisição — padrão recomendado pela própria doc do Next 16
 (`node_modules/next/dist/docs/01-app/02-guides/data-security.md`).
 
-- [ ] **Step 4: Criar `apps/web/src/lib/api-client.ts`**
+- [x] **Step 4: Criar `apps/web/src/lib/api-client.ts`**
 
 ```typescript
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
@@ -1131,7 +1131,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 }
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/proxy.ts apps/web/src/lib/auth.ts apps/web/src/lib/api-client.ts apps/web/.env.local.example
@@ -1149,7 +1149,7 @@ git commit -m "feat: add Next.js proxy and auth helpers for session handling"
 **Interfaces:**
 - Consumes: `apiFetch` e `getCurrentUser` (Tarefa 6).
 
-- [ ] **Step 1: Criar `apps/web/src/app/login/page.tsx`**
+- [x] **Step 1: Criar `apps/web/src/app/login/page.tsx`**
 
 ```tsx
 'use client';
@@ -1212,7 +1212,7 @@ export default function LoginPage() {
 }
 ```
 
-- [ ] **Step 2: Criar `apps/web/src/app/dashboard/page.tsx`**
+- [x] **Step 2: Criar `apps/web/src/app/dashboard/page.tsx`**
 
 ```tsx
 import { getCurrentUser } from '@/lib/auth';
@@ -1232,7 +1232,7 @@ export default async function DashboardPage() {
 Página mínima só para provar o fluxo end-to-end (Tarefa 8) — o design real do painel fica para um módulo
 futuro.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/web/src/app/login apps/web/src/app/dashboard
@@ -1245,23 +1245,23 @@ git commit -m "feat: add login page and protected dashboard stub"
 
 **Files:** nenhum arquivo novo — só verificação manual.
 
-- [ ] **Step 1: Subir tudo**
+- [x] **Step 1: Subir tudo**
 
 Run: `pnpm dev` (raiz)
 Expected: `api` (:3001) e `web` (:3000) sobem juntos, sem erro.
 
-- [ ] **Step 2: Confirmar redirect de rota protegida sem sessão**
+- [x] **Step 2: Confirmar redirect de rota protegida sem sessão**
 
 No navegador, acesse `http://localhost:3000/dashboard` sem ter logado antes.
 Expected: redireciona para `/login` (via `proxy.ts`).
 
-- [ ] **Step 3: Logar com o usuário do seed e confirmar acesso ao dashboard**
+- [x] **Step 3: Logar com o usuário do seed e confirmar acesso ao dashboard**
 
 Na tela de `/login`, use o email/senha de `apps/api/.env` (`SEED_DENTIST_EMAIL`/`SEED_DENTIST_PASSWORD`).
 Expected: redireciona para `/dashboard`, que mostra "Logada como dentista." — confirma que `getCurrentUser()`
 conseguiu ler o cookie e chamar `/auth/me` com sucesso.
 
-- [ ] **Step 4: Confirmar que o cookie de acesso expira e o refresh automático funciona**
+- [x] **Step 4: Confirmar que o cookie de acesso expira e o refresh automático funciona**
 
 Não é prático esperar 15 minutos manualmente — em vez disso, abra o DevTools (Application → Cookies) e apague
 só o cookie `access_token` (deixe o `refresh_token`). Recarregue `/dashboard`.
@@ -1270,7 +1270,7 @@ server-side — para confirmar o retry do lado do cliente, faça login de novo e
 abertas, dispare uma ação que use `apiFetch` depois de apagar só o `access_token`; deve aparecer uma chamada a
 `/auth/refresh` seguida da chamada original bem-sucedida).
 
-- [ ] **Step 5: Confirmar logout**
+- [x] **Step 5: Confirmar logout**
 
 Dispare `POST http://localhost:3001/auth/logout` (via `apiFetch` de algum botão, ou `curl -i -b cookies.txt -X
 POST http://localhost:3001/auth/logout`) e confirme que acessar `/dashboard` depois redireciona para `/login`
@@ -1278,10 +1278,10 @@ de novo.
 
 ## Definição de pronto do Módulo Auth
 
-- [ ] `pnpm --filter api test` passa (inclui `auth.service.spec.ts`, 9 testes)
-- [ ] `pnpm --filter api exec jest --config test/jest-e2e.json auth` passa (3 testes e2e)
-- [ ] Seed cria a usuária dentista em `agendamento_dev` sem duplicar em execuções repetidas
-- [ ] Fluxo manual da Tarefa 8 (login → dashboard → refresh automático → logout → redirect) funciona de ponta
+- [x] `pnpm --filter api test` passa (inclui `auth.service.spec.ts`, 9 testes)
+- [x] `pnpm --filter api exec jest --config test/jest-e2e.json auth` passa (3 testes e2e)
+- [x] Seed cria a usuária dentista em `agendamento_dev` sem duplicar em execuções repetidas
+- [x] Fluxo manual da Tarefa 8 (login → dashboard → refresh automático → logout → redirect) funciona de ponta
   a ponta no navegador
-- [ ] Nenhum segredo novo (`JWT_SECRET`, credenciais do seed) commitado — só nos `.env.example`
-- [ ] `docs/decisions.md` tem a entrada 017 registrando as correções técnicas da spec
+- [x] Nenhum segredo novo (`JWT_SECRET`, credenciais do seed) commitado — só nos `.env.example`
+- [x] `docs/decisions.md` tem a entrada 017 registrando as correções técnicas da spec
