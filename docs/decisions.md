@@ -397,6 +397,54 @@ dependência específica.
 
 ---
 
+## 018 — Três trade-offs de segurança/deploy do módulo Auth aceitos sem mudança de código
+
+**Data:** 2026-09-07
+**Status:** Aceita
+
+**Contexto:** Revisão final de todo o branch `auth-module-sdd` (pós Tarefas 1-8, todas já
+revisadas individualmente) encontrou três decisões de segurança/topologia de deploy que
+já estavam implicitamente no código, mas nunca tinham sido registradas como decisão
+consciente — risco de serem lidas como omissão em vez de trade-off aceito.
+
+**Decisão 1 — Logout não revoga o access token.** `AuthService.logout` revoga só o
+refresh token (`RefreshToken.revokedAt`); o JWT de access token continua válido até seu
+próprio TTL de 15min expirar, mesmo depois do logout, porque é stateless (sem
+verificação contra o banco a cada request — essa é a vantagem de performance de um JWT
+stateless). Aceito para a v1: usuária única de baixo risco (a própria dentista, sem
+múltiplos funcionários, sem terminal compartilhado/público). Se o modelo de ameaça
+mudar (múltiplas contas de staff, terminal compartilhado na recepção), revisitar com uma
+deny-list de access tokens revogados (ex. Redis com TTL = TTL restante do JWT).
+
+**Decisão 2 — `sameSite: 'lax'` restringe a topologia de deploy em produção.**
+Funciona hoje porque `localhost:3000` (web) e `localhost:3001` (api) são o mesmo site
+(porta não afeta "site" pra fins de cookie). Em produção, API e web precisam continuar
+no mesmo domínio registrável (ex. `app.clinica.com` + `api.clinica.com` — ainda mesmo
+site) pra sessão funcionar. Uma topologia genuinamente cross-site (domínios registráveis
+diferentes) quebraria silenciosamente toda requisição autenticada, porque cookies `Lax`
+não são enviados em fetch cross-site não-navegacional (exatamente o caso de
+`apiFetch()`/Route Handlers chamando a API). Se um deploy futuro exigir domínios
+diferentes, isso precisa de `sameSite: 'none'` + `secure: true` + proteção CSRF — não é
+um ajuste cosmético de flag de cookie, é uma mudança de superfície de ataque.
+
+**Decisão 3 — `trust proxy` assume exatamente um hop de reverse proxy.**
+`apps/api/src/main.ts` chama `app.getHttpAdapter().getInstance().set('trust proxy', 1)`
+pra que `@nestjs/throttler` (rate limit de login) identifique o IP real do cliente por
+trás de um reverse proxy/load balancer de PaaS, em vez de tratar todo tráfego como vindo
+de um único IP (o do proxy) — o que tornaria o limite de 5 req/min um cadeado global em
+vez de por cliente. `1` cobre a topologia típica de um hop só. Revisitar a contagem se a
+topologia de deploy mudar (ex. Cloudflare na frente de um load balancer de PaaS = 2
+hops; API exposta direto pra internet sem proxy nenhum = 0 hops) — um valor errado na
+direção errada (confiar num hop que não é proxy de verdade) deixa um cliente malicioso
+forjar seu próprio IP via `X-Forwarded-For` e furar o rate limit por completo.
+
+**Consequências:** Nenhuma mudança de schema ou comportamento — as três já eram o
+comportamento real do sistema. Ficam documentadas aqui como decisões conscientes (não
+omissões) a revisitar nos gatilhos específicos listados acima, não em qualquer revisão
+futura genérica.
+
+---
+
 ## Índice rápido
 
 | # | Decisão | Área |
@@ -418,3 +466,4 @@ dependência específica.
 | 015 | Postgres local via Docker Compose | Infra |
 | 016 | `apps/web` no Next.js 16.x (mais recente) | Frontend |
 | 017 | Correções técnicas do módulo Auth (`@nestjs/jwt` pinado em 11.0.2 por ESM, hash SHA-256 do refresh token) | Backend/Segurança |
+| 018 | Trade-offs de segurança/deploy do Auth: logout não revoga access token, `sameSite: 'lax'` exige mesmo domínio registrável, `trust proxy` assume 1 hop | Backend/Segurança |
