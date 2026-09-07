@@ -45,17 +45,29 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    await this.prisma.refreshToken.update({
-      where: { id: record.id },
+    // updateMany + checar `count` em vez de update({ where: { id } }) fecha uma race de
+    // check-then-act: duas chamadas concorrentes com o mesmo refresh token passariam
+    // ambas na validação acima antes de qualquer uma escrever. Condicionar o WHERE em
+    // `revokedAt: null` garante que só uma das duas chamadas concorrentes consegue
+    // de fato flipar revokedAt de null pra uma data — a outra recebe count 0 e sabe que
+    // perdeu a corrida.
+    const { count } = await this.prisma.refreshToken.updateMany({
+      where: { id: record.id, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+
+    if (count === 0) {
+      throw new UnauthorizedException();
+    }
 
     return this.issueTokens(record.user);
   }
 
   async logout(rawRefreshToken: string): Promise<void> {
     const tokenHash = this.hashToken(rawRefreshToken);
-    const record = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
+    const record = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
 
     if (record) {
       await this.prisma.refreshToken.update({
@@ -71,7 +83,10 @@ export class AuthService {
     return crypto.createHash('sha256').update(rawToken).digest('hex');
   }
 
-  private async issueTokens(user: { id: string; role: JwtPayload['role'] }): Promise<AuthTokens> {
+  private async issueTokens(user: {
+    id: string;
+    role: JwtPayload['role'];
+  }): Promise<AuthTokens> {
     const payload: JwtPayload = { sub: user.id, role: user.role };
     const accessToken = await this.jwtService.signAsync(payload);
 
@@ -86,6 +101,10 @@ export class AuthService {
       },
     });
 
-    return { accessToken, refreshToken: rawRefreshToken, refreshTokenExpiresAt };
+    return {
+      accessToken,
+      refreshToken: rawRefreshToken,
+      refreshTokenExpiresAt,
+    };
   }
 }

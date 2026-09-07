@@ -19,7 +19,9 @@ describe('Auth (e2e)', () => {
   beforeAll(async () => {
     await prisma.user.deleteMany({ where: { email } });
     const passwordHash = await argon2.hash(password);
-    await prisma.user.create({ data: { email, passwordHash, role: 'DENTIST' } });
+    await prisma.user.create({
+      data: { email, passwordHash, role: 'DENTIST' },
+    });
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -85,6 +87,17 @@ describe('Auth (e2e)', () => {
     await request(app.getHttpServer())
       .get('/auth/me')
       .set('Cookie', clearedCookies!)
+      .expect(401);
+
+    // A checagem acima só prova que os cookies foram limpos client-side — verdade pra
+    // qualquer cookie ausente/inválido, não prova revogação server-side. Reusar
+    // refreshedCookies (capturado logo após o /auth/refresh, antes do logout limpar
+    // qualquer coisa) contra /auth/refresh de novo prova que AuthService.logout de fato
+    // revogou o refresh token no banco — se não tivesse revogado, este refresh teria
+    // sucesso (o token ainda não expirou, só foi "esquecido" pelo cookie jar).
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .set('Cookie', refreshedCookies!)
       .expect(401);
   });
 });

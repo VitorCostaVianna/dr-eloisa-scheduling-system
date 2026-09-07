@@ -34,7 +34,12 @@ describe('AuthService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      imports: [JwtModule.register({ secret: 'test-secret', signOptions: { expiresIn: '15m' } })],
+      imports: [
+        JwtModule.register({
+          secret: 'test-secret',
+          signOptions: { expiresIn: '15m' },
+        }),
+      ],
       providers: [AuthService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
@@ -45,19 +50,33 @@ describe('AuthService', () => {
     it('throws UnauthorizedException when the user does not exist', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.login(email, plainPassword)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(email, plainPassword)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('throws UnauthorizedException when the password is wrong', async () => {
       const passwordHash = await argon2.hash(plainPassword);
-      prisma.user.findUnique.mockResolvedValue({ id: userId, email, passwordHash, role: Role.DENTIST });
+      prisma.user.findUnique.mockResolvedValue({
+        id: userId,
+        email,
+        passwordHash,
+        role: Role.DENTIST,
+      });
 
-      await expect(service.login(email, 'senha-errada')).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(email, 'senha-errada')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('revokes previous refresh tokens and returns new tokens on success', async () => {
       const passwordHash = await argon2.hash(plainPassword);
-      prisma.user.findUnique.mockResolvedValue({ id: userId, email, passwordHash, role: Role.DENTIST });
+      prisma.user.findUnique.mockResolvedValue({
+        id: userId,
+        email,
+        passwordHash,
+        role: Role.DENTIST,
+      });
       prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
       prisma.refreshToken.create.mockResolvedValue({ id: 'rt-1' });
 
@@ -65,7 +84,9 @@ describe('AuthService', () => {
 
       expect(tokens.accessToken.split('.')).toHaveLength(3); // formato JWT
       expect(tokens.refreshToken).toHaveLength(64); // hex de 32 bytes
-      expect(tokens.refreshTokenExpiresAt.getTime()).toBeGreaterThan(Date.now());
+      expect(tokens.refreshTokenExpiresAt.getTime()).toBeGreaterThan(
+        Date.now(),
+      );
 
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
         where: { userId, revokedAt: null },
@@ -87,7 +108,9 @@ describe('AuthService', () => {
     it('throws UnauthorizedException when the token does not exist', async () => {
       prisma.refreshToken.findUnique.mockResolvedValue(null);
 
-      await expect(service.refresh(rawToken)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh(rawToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('throws UnauthorizedException when the token is revoked', async () => {
@@ -99,7 +122,9 @@ describe('AuthService', () => {
         user: { id: userId, role: Role.DENTIST },
       });
 
-      await expect(service.refresh(rawToken)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh(rawToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('throws UnauthorizedException when the token is expired', async () => {
@@ -111,7 +136,9 @@ describe('AuthService', () => {
         user: { id: userId, role: Role.DENTIST },
       });
 
-      await expect(service.refresh(rawToken)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh(rawToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('rotates the token and returns new tokens on success', async () => {
@@ -122,14 +149,14 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() + 1000 * 60 * 60),
         user: { id: userId, role: Role.DENTIST },
       });
-      prisma.refreshToken.update.mockResolvedValue({ id: 'rt-1' });
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
       prisma.refreshToken.create.mockResolvedValue({ id: 'rt-2' });
 
       const tokens = await service.refresh(rawToken);
 
       expect(tokens.refreshToken).not.toBe(rawToken);
-      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
-        where: { id: 'rt-1' },
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { id: 'rt-1', revokedAt: null },
         data: { revokedAt: expect.any(Date) },
       });
       expect(prisma.refreshToken.create).toHaveBeenCalledWith({
@@ -140,13 +167,32 @@ describe('AuthService', () => {
         },
       });
     });
+
+    it('throws UnauthorizedException when another concurrent call already rotated the token', async () => {
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1',
+        userId,
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        user: { id: userId, role: Role.DENTIST },
+      });
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.refresh(rawToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('logout', () => {
     const rawToken = 'b'.repeat(64);
 
     it('revokes the matching refresh token', async () => {
-      prisma.refreshToken.findUnique.mockResolvedValue({ id: 'rt-1', revokedAt: null });
+      prisma.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-1',
+        revokedAt: null,
+      });
       prisma.refreshToken.update.mockResolvedValue({ id: 'rt-1' });
 
       await service.logout(rawToken);
