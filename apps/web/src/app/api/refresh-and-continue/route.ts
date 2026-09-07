@@ -17,7 +17,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 // também expirado/revogado).
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const requestedNext = request.nextUrl.searchParams.get('next');
-  const next = isSafeRelativePath(requestedNext) ? requestedNext! : '/dashboard';
+  const next = getSafeRedirectPath(requestedNext, request.url);
 
   const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
     method: 'POST',
@@ -50,9 +50,32 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return redirectResponse;
 }
 
-// Guarda contra open-redirect: só aceita caminho relativo começando com uma única "/"
-// (rejeita "//evil.com", que o browser trata como protocol-relative pro host errado, e
-// rejeita URLs absolutas tipo "https://evil.com").
-function isSafeRelativePath(value: string | null): value is string {
-  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//');
+// Guarda contra open-redirect: valida o `next` contra a origem da requisição após parsing,
+// não apenas um prefixo de string bruta. WHATWG URL parsing normaliza backslashes e
+// caracteres de controle ANTES de resolver — um valor como "/\evil.com" que passaria
+// num check de prefixo bruto é normalizado pelo parser pra "/evil.com", resultando
+// em redirecionamento pra um domínio diferente. A solução: tentar parsear como URL
+// absoluta com a origem da requisição como base, verificar se a origem resolvida
+// bate com a nossa, e então usar o caminho+query+hash da URL parseada (não a string bruta).
+function getSafeRedirectPath(value: string | null, requestUrl: string): string {
+  if (!value) return '/dashboard';
+
+  try {
+    // Tentar parsear `value` como URL absoluta usando `requestUrl` como base.
+    const parsed = new URL(value, requestUrl);
+    // Extrair a origem da requisição do mesmo jeito.
+    const requestOrigin = new URL(requestUrl).origin;
+
+    // Se a origem parseada não bate com a origem da requisição, rejeitar.
+    if (parsed.origin !== requestOrigin) {
+      return '/dashboard';
+    }
+
+    // Se passou, usar pathname+search+hash (não a string bruta) pra garantir
+    // que o que está sendo validado é exatamente o que está sendo redirecionado.
+    return parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    // Se parsing falhar (URL malformada, etc), cair pro fallback.
+    return '/dashboard';
+  }
 }
