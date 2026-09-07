@@ -32,4 +32,16 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // Jest's `expect.any()`/`expect.stringMatching()` and supertest's untyped
+    // `response.body` are typed `any` in their own ambient types — every test
+    // that uses them trips the type-checked `no-unsafe-*` rules for reasons
+    // that have nothing to do with real type-safety bugs in test code.
+    files: ['**/*.spec.ts', 'test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+    },
+  },
 );
