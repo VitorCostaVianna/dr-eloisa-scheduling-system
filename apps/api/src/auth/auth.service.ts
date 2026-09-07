@@ -8,6 +8,15 @@ import { JwtPayload } from './types/jwt-payload.type';
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Hash fixo calculado uma vez no load do módulo, usado só pra gastar o custo de CPU do
+// argon2 quando o usuário não existe (ver login() abaixo) — nunca comparado com um
+// valor real. Sem isso, "usuário não existe" (retorno imediato) e "senha errada"
+// (retorno só depois do custo do argon2) são distinguíveis por tempo de resposta, mesmo
+// com a mesma mensagem de erro (401 genérico) nos dois casos.
+const DUMMY_PASSWORD_HASH = argon2.hash(
+  'not-a-real-password-used-only-for-timing-equalization',
+);
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,6 +27,12 @@ export class AuthService {
   async login(email: string, password: string): Promise<AuthTokens> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
+      // Gasta o mesmo custo de CPU que o caminho "usuário existe, senha errada" abaixo,
+      // pra não vazar via timing se o email está cadastrado ou não. O resultado nunca é
+      // checado — é sempre false contra este hash fixo, isso não importa aqui.
+      await argon2
+        .verify(await DUMMY_PASSWORD_HASH, password)
+        .catch(() => false);
       throw new UnauthorizedException();
     }
 
