@@ -428,15 +428,16 @@ diferentes, isso precisa de `sameSite: 'none'` + `secure: true` + proteção CSR
 um ajuste cosmético de flag de cookie, é uma mudança de superfície de ataque.
 
 **Decisão 3 — `trust proxy` assume exatamente um hop de reverse proxy.**
-`apps/api/src/main.ts` chama `app.getHttpAdapter().getInstance().set('trust proxy', 1)`
-pra que `@nestjs/throttler` (rate limit de login) identifique o IP real do cliente por
-trás de um reverse proxy/load balancer de PaaS, em vez de tratar todo tráfego como vindo
-de um único IP (o do proxy) — o que tornaria o limite de 5 req/min um cadeado global em
-vez de por cliente. `1` cobre a topologia típica de um hop só. Revisitar a contagem se a
-topologia de deploy mudar (ex. Cloudflare na frente de um load balancer de PaaS = 2
-hops; API exposta direto pra internet sem proxy nenhum = 0 hops) — um valor errado na
-direção errada (confiar num hop que não é proxy de verdade) deixa um cliente malicioso
-forjar seu próprio IP via `X-Forwarded-For` e furar o rate limit por completo.
+`apps/api/src/main.ts` chama `app.set('trust proxy', 1)` (onde `app` é tipado como
+`NestExpressApplication`) pra que `@nestjs/throttler` (rate limit de login) identifique o IP real do
+cliente por trás de um reverse proxy/load balancer de PaaS, em vez de tratar todo
+tráfego como vindo de um único IP (o do proxy) — o que tornaria o limite de 5 req/min
+um cadeado global em vez de por cliente. `1` cobre a topologia típica de um hop só.
+Revisitar a contagem se a topologia de deploy mudar (ex. Cloudflare na frente de um
+load balancer de PaaS = 2 hops; API exposta direto pra internet sem proxy nenhum = 0
+hops) — um valor errado na direção errada (confiar num hop que não é proxy de verdade)
+deixa um cliente malicioso forjar seu próprio IP via `X-Forwarded-For` e furar o rate
+limit por completo.
 
 **Consequências:** Nenhuma mudança de schema ou comportamento — as três já eram o
 comportamento real do sistema. Ficam documentadas aqui como decisões conscientes (não
