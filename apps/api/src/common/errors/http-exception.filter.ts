@@ -26,7 +26,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Guard (401), throttler (429), rota inexistente (404): resposta padrão do Nest.
     if (exception instanceof HttpException) {
-      res.status(exception.getStatus()).json(exception.getResponse());
+      // Mesmo formato do filtro padrão do Nest: resposta em texto (ex.: throttler) vira objeto.
+      const status = exception.getStatus();
+      const body = exception.getResponse();
+      res
+        .status(status)
+        .json(
+          typeof body === 'object'
+            ? body
+            : { statusCode: status, message: body },
+        );
       return;
     }
 

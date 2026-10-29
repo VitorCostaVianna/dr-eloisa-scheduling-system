@@ -25,4 +25,20 @@ describe('Formato de erro da API (e2e)', () => {
     expect(JSON.stringify(res.body.details)).not.toMatch(/\b1\b/);
     expect(JSON.stringify(res.body)).not.toMatch(/"email":\s*1\b/);
   });
+
+  it('rota inexistente mantém o corpo padrão do Nest (404)', async () => {
+    const res = await request(ctx.app.getHttpServer()).get('/rota-inexistente');
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({
+      statusCode: 404,
+      message: expect.any(String),
+      error: 'Not Found',
+    });
+  });
+
+  it('GET /auth/me sem cookie continua 401 pelo filtro', async () => {
+    const res = await request(ctx.app.getHttpServer()).get('/auth/me');
+    expect(res.status).toBe(401);
+    expect(res.body.statusCode).toBe(401);
+  });
 });
