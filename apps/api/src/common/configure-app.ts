@@ -1,7 +1,25 @@
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationError, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import { DomainError } from './errors/domain-error';
+import { AllExceptionsFilter } from './errors/http-exception.filter';
+import { jsonOnly } from './http/json-only.middleware';
+
+// Só caminhos de campo (inclusive aninhados), nunca os valores digitados.
+function collectFields(errors: ValidationError[], prefix = ''): string[] {
+  return errors.flatMap((e) => {
+    const path = prefix ? `${prefix}.${e.property}` : e.property;
+    const nested = e.children?.length ? collectFields(e.children, path) : [];
+    return e.constraints ? [path, ...nested] : nested;
+  });
+}
+
+function validationExceptionFactory(errors: ValidationError[]): DomainError {
+  return new DomainError('VALIDATION_FAILED', {
+    fields: collectFields(errors),
+  });
+}
 
 // Setup HTTP compartilhado entre o main.ts e os testes (createTestApp): garante que
 // e2e exercita exatamente o mesmo pipeline de produção (helmet, CORS, validação).
@@ -30,6 +48,8 @@ export function configureApp(app: NestExpressApplication): void {
 
   app.use(helmet());
   app.use(cookieParser());
+  app.use(jsonOnly);
+  app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors({
     origin: process.env.CORS_ORIGIN,
     credentials: true,
@@ -39,6 +59,7 @@ export function configureApp(app: NestExpressApplication): void {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 }
