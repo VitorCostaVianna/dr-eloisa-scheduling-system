@@ -1096,7 +1096,7 @@ metadados de numeração envelhecem; ao atualizar, conferir a versão usada pelo
 | 025 | Lock consultivo por profissional + `UPDATE` condicional com `now` da aplicação (proposta) | Concorrência |
 | 026 | Idempotência por comparação com campos gravados; ordem honeypot → chave → captcha (proposta) | Backend/Segurança |
 | 027 | E-mail: porta `EmailSender`, outbox com reserva e backoff, templates TS com escape (proposta) | Backend |
-| 028 | `notifications` lê pelo `AppointmentReader`, só de `scheduling/contracts` (proposta) | Backend |
+| 028 | `notifications` lê pelo `AppointmentReader`, só de `scheduling/contracts` | Backend |
 | 029 | Frontend sem Server Actions: `apiServer`/`apiFetch`/`publicFetch` (proposta) | Frontend/Segurança |
 | 030 | `class-validator` autoritativo, Zod só no web, `shared-types` com build CJS (proposta) | Backend/Frontend |
 | 031 | Calendário próprio em CSS grid, formulário antes de arrastar (proposta) | Frontend |
