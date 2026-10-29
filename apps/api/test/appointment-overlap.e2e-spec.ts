@@ -49,6 +49,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 
@@ -59,6 +61,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 
@@ -92,6 +96,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 
@@ -102,6 +108,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 
