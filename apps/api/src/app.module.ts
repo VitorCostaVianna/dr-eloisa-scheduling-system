@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { TimeModule } from './common/time/time.module';
+import { SchedulingModule } from './scheduling/scheduling.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TimeModule } from './common/time/time.module';
     TimeModule,
     PrismaModule,
     AuthModule,
+    SchedulingModule,
   ],
   controllers: [AppController],
   providers: [
