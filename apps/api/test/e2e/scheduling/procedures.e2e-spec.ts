@@ -148,6 +148,28 @@ describe('Procedimentos (e2e)', () => {
       expect(res.status).toBe(400);
     });
 
+    it.each([{ name: null }, { active: null }, { durationMinutes: null }])(
+      'PATCH %j → 400 VALIDATION_FAILED e o procedimento não muda',
+      async (body) => {
+        const { id } = await makeService(ctx.prisma, {
+          professionalId,
+          name: 'Limpeza',
+          durationMinutes: 60,
+        });
+        const res = await patch(id, body);
+        expect(res.status).toBe(400);
+        expect(res.body.code).toBe('VALIDATION_FAILED');
+        const row = await ctx.prisma.service.findUniqueOrThrow({
+          where: { id },
+        });
+        expect(row).toMatchObject({
+          name: 'Limpeza',
+          durationMinutes: 60,
+          active: true,
+        });
+      },
+    );
+
     it('GET /public/procedures vem ordenado por nome e sem o campo active', async () => {
       await makeService(ctx.prisma, {
         professionalId,
