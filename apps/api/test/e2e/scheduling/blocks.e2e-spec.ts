@@ -187,5 +187,28 @@ describe('Horário semanal e bloqueios (e2e)', () => {
       expect(res.body.code).toBe('VALIDATION_FAILED');
       expect(JSON.stringify(res.body)).not.toContain('MOTIVO-SECRETO-XYZ');
     });
+
+    // Revisor: 9999-12-31 + 1 dia estoura o calendário; deve ser 400, nunca 500.
+    describe('data no limite do calendário → 400 VALIDATION_FAILED', () => {
+      it('POST /blocks FULL_DAYS com toDate 9999-12-31, nada gravado', async () => {
+        const before = await ctx.prisma.scheduleBlock.count();
+        const res = await post({
+          kind: 'FULL_DAYS',
+          fromDate: '2026-11-16',
+          toDate: '9999-12-31',
+        });
+        expect(res.status).toBe(400);
+        expect(res.body.code).toBe('VALIDATION_FAILED');
+        expect(await ctx.prisma.scheduleBlock.count()).toBe(before);
+      });
+
+      it('GET /blocks com to 9999-12-31', async () => {
+        const res = await http()
+          .get('/blocks?from=9999-12-30&to=9999-12-31')
+          .set('Cookie', cookie);
+        expect(res.status).toBe(400);
+        expect(res.body.code).toBe('VALIDATION_FAILED');
+      });
+    });
   });
 });
