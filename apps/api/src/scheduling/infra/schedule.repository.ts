@@ -50,7 +50,7 @@ export class ScheduleRepository {
     });
   }
 
-  /** `tx` repassado do caso de uso (lockSchedule j· tomado). */
+  /** `tx` repassado do caso de uso (lockSchedule j√° tomado). */
   insertBlock(
     tx: Prisma.TransactionClient,
     professionalId: string,

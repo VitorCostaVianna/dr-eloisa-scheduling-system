@@ -28,3 +28,14 @@ export interface BlockDto {
 export type CreateBlockRequest =
   | { kind: 'FULL_DAYS'; fromDate: string; toDate: string; reason?: string }
   | { kind: 'PERIOD'; startAt: string; endAt: string; reason?: string };
+
+export interface HolidayDto {
+  date: string;
+  name: string;
+  overridden: boolean;
+}
+
+export interface HolidayOverrideDto {
+  id: string;
+  date: string;
+}

@@ -3,9 +3,20 @@ import { isValidLocalDate } from '../time/clinic-time';
 
 const MAX_YEAR = 9998;
 
-// 'YYYY-MM-DD' que existe no calendário (rejeita '2026-02-30'). O ano máximo é 9998:
+export interface LocalDateYearRange {
+  minYear?: number;
+  maxYear?: number;
+}
+
+// 'YYYY-MM-DD' que existe no calendário (rejeita '2026-02-30'). O ano máximo padrão é 9998:
 // os casos de uso somam 1 dia ao fim do intervalo e 9999-12-31 + 1 estoura o calendário (500).
-export function IsLocalDate(options?: ValidationOptions): PropertyDecorator {
+// `range` estreita a faixa de anos quando o endpoint tem limite próprio.
+export function IsLocalDate(
+  options?: ValidationOptions,
+  range: LocalDateYearRange = {},
+): PropertyDecorator {
+  const minYear = range.minYear ?? 0;
+  const maxYear = Math.min(range.maxYear ?? MAX_YEAR, MAX_YEAR);
   return (target, propertyKey) => {
     registerDecorator({
       name: 'isLocalDate',
@@ -16,10 +27,13 @@ export function IsLocalDate(options?: ValidationOptions): PropertyDecorator {
         ...options,
       },
       validator: {
-        validate: (value: unknown) =>
-          typeof value === 'string' &&
-          isValidLocalDate(value) &&
-          Number(value.slice(0, 4)) <= MAX_YEAR,
+        validate: (value: unknown) => {
+          if (typeof value !== 'string' || !isValidLocalDate(value)) {
+            return false;
+          }
+          const year = Number(value.slice(0, 4));
+          return year >= minYear && year <= maxYear;
+        },
       },
     });
   };

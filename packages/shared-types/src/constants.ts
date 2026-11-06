@@ -12,3 +12,6 @@ export const EMAIL_MAX = 254;
 export const PROCEDURE_NAME_MAX = 100;
 export const BLOCK_REASON_MAX = 200;
 export const AVAILABILITY_MAX_DAYS = 31;
+// Faixa de anos de GET /holidays e POST /holiday-overrides (fora dela o desbloqueio ficaria invisível).
+export const HOLIDAY_YEAR_MIN = 2000;
+export const HOLIDAY_YEAR_MAX = 2100;
