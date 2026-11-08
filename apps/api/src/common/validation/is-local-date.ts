@@ -8,14 +8,14 @@ export interface LocalDateYearRange {
   maxYear?: number;
 }
 
-// 'YYYY-MM-DD' que existe no calendário (rejeita '2026-02-30'). O ano máximo padrão é 9998:
+// 'YYYY-MM-DD' que existe no calendário (rejeita '2026-02-30'). O ano mínimo padrão é 1 (addLocalDays(d, -1) em 0000-01-01 gera ano negativo → 500) e o máximo 9998:
 // os casos de uso somam 1 dia ao fim do intervalo e 9999-12-31 + 1 estoura o calendário (500).
 // `range` estreita a faixa de anos quando o endpoint tem limite próprio.
 export function IsLocalDate(
   options?: ValidationOptions,
   range: LocalDateYearRange = {},
 ): PropertyDecorator {
-  const minYear = range.minYear ?? 0;
+  const minYear = range.minYear ?? 1;
   const maxYear = Math.min(range.maxYear ?? MAX_YEAR, MAX_YEAR);
   return (target, propertyKey) => {
     registerDecorator({

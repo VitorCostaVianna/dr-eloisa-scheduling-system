@@ -4,10 +4,10 @@ import type {
   WorkingHoursDto,
 } from '@sistema-agendamento/shared-types';
 import { DomainError } from '../../common/errors/domain-error';
+import { assertLocalRange } from '../../common/validation/assert-local-range';
 import { lockSchedule } from '../../common/prisma/advisory-lock';
 import {
   addLocalDays,
-  daysBetweenInclusive,
   instantAt,
   isValidLocalDate,
   startOfLocalDay,
@@ -38,10 +38,7 @@ export class ScheduleConfigService {
     from: LocalDate,
     to: LocalDate,
   ): Promise<BlockRecord[]> {
-    const days = daysBetweenInclusive(from, to);
-    if (days < 1 || days > LIST_MAX_DAYS) {
-      throw new DomainError('VALIDATION_FAILED', { fields: ['from', 'to'] });
-    }
+    assertLocalRange(from, to, LIST_MAX_DAYS);
     return this.schedule.findBlocksIntersecting(
       professionalId,
       startOfLocalDay(from),

@@ -1,4 +1,9 @@
 import { Module } from '@nestjs/common';
+import { AvailabilityService } from './application/availability.service';
+import { CalendarService } from './application/calendar.service';
+import { CalendarController } from './http/dentist/calendar.controller';
+import { PublicAvailabilityController } from './http/public/public-availability.controller';
+import { AppointmentReadRepository } from './infra/appointment-read.repository';
 import { HolidayOverridesService } from './application/holiday-overrides.service';
 import { ProceduresService } from './application/procedures.service';
 import { ProfessionalContextService } from './application/professional-context.service';
@@ -19,6 +24,8 @@ import { ProcedureRepository } from './infra/procedure.repository';
     WorkingHoursController,
     BlocksController,
     HolidaysController,
+    PublicAvailabilityController,
+    CalendarController,
   ],
   providers: [
     ProfessionalContextService,
@@ -28,6 +35,9 @@ import { ProcedureRepository } from './infra/procedure.repository';
     ScheduleConfigService,
     HolidayOverrideRepository,
     HolidayOverridesService,
+    AppointmentReadRepository,
+    AvailabilityService,
+    CalendarService,
   ],
   exports: [ProfessionalContextService],
 })
