@@ -8,5 +8,5 @@ export async function loginAsDentist(page: Page): Promise<void> {
   await page.getByLabel('Email').fill(env.SEED_DENTIST_EMAIL);
   await page.getByLabel('Senha').fill(env.SEED_DENTIST_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.waitForURL(/\/dashboard/);
+  await page.waitForURL(/\/dashboard\/agenda/);
 }

@@ -1,3 +1,5 @@
+import { redirectToLogin } from './session-redirect';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 // Wrapper de fetch para chamadas do BROWSER (client components) à API. Em caso de
@@ -21,6 +23,13 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     if (refreshResponse.ok) {
       response = await doFetch();
     }
+  }
+
+  // Access e refresh expirados: só o login resolve. /auth/* fica de fora porque lá o 401 é
+  // resposta legítima (ex.: senha errada no login). O redirect de navegação é o
+  // /api/refresh-and-continue (proxy); aqui, no browser, o refresh já foi tentado acima.
+  if (response.status === 401 && !path.startsWith('/auth/')) {
+    redirectToLogin();
   }
 
   return response;
