@@ -4,10 +4,11 @@ import type { NextRequest } from 'next/server';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 // Rota executada no runtime Node.js (padrão do App Router — sem `export const runtime =
-// 'edge'`), porque precisa fazer duas coisas que o proxy.ts (Edge-style middleware) e os
-// Server Components (ver lib/auth.ts) não conseguem fazer: ler múltiplos headers
-// `Set-Cookie` da resposta da API (access_token + refresh_token, um por chamada de
-// `res.cookie()`) e setar cookies numa resposta de redirect. Ver
+// 'edge'`), porque precisa fazer duas coisas que o proxy.ts e os Server Components
+// (ver lib/auth.ts) não conseguem fazer. No Next 16 o proxy também roda em Node.js (não é
+// mais "Edge-style middleware"), mas só redireciona/reescreve a requisição; aqui é preciso
+// ler múltiplos headers `Set-Cookie` da resposta da API (access_token + refresh_token, um
+// por chamada de `res.cookie()`) e setar cookies numa resposta de redirect. Ver
 // docs/superpowers/specs/2026-09-04-auth-module-design.md e o ADR sobre a
 // navegação-time refresh no docs/decisions.md.
 //

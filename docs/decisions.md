@@ -1018,6 +1018,21 @@ reais. Entram dependências de teste no web (Vitest, Testing Library, jsdom, Pla
 versões exatas são escolhidas no dia da instalação pela regra do guia §3.10 (houve releases
 nas últimas 2 semanas) e anotadas nesta ADR antes de ela virar Aceita.
 
+**Versões instaladas no web (2026-11-12, exatas, publicadas há ≥ 14 dias):** `vitest@4.1.12`
+(2026-10-15), `@testing-library/react@16.3.3` (2026-08-27), `@testing-library/jest-dom@7.0.1`
+(2026-08-09), `@testing-library/user-event@14.6.8` (2026-10-13), `jsdom@29.1.1` (2026-04-30, ver abaixo),
+`@vitejs/plugin-react@6.1.2` (2026-10-05; exige Vite 8, que o Vitest 4.1 aceita),
+`@playwright/test@1.64.1` (2026-10-14), `luxon@3.7.2`, `@types/luxon@3.7.6` e `server-only@0.0.1`.
+Ficaram de fora versões mais novas (Vitest 5.1.0, Playwright 1.65.0, plugin-react 6.3.0)
+por terem menos de 14 dias. O `global-setup` do Playwright reutiliza o `@prisma/client` do
+`apps/api` (sem dependência nova no web).
+
+**jsdom fixado em 29.1.1 (2026-04-30), não 30.x:** o `jsdom@30` exige Node `^22.22.2 || ^24.15.0`
+e traz `undici@8`, que quebra no Node 22.14 (`Cannot read properties of undefined (reading 'bind')`
+em `undici/lib/interceptor/decompress.js`), então nenhum teste com jsdom subia. O `jsdom@29.1.1`
+(Node `^20.19.0 || ^22.13.0`, `undici@7`) roda no Node 22.14; verificado com um teste de
+componente descartável. Subir para 30.x só junto com a atualização do Node.
+
 ---
 
 ## 034 — Dois throttlers nomeados, em memória

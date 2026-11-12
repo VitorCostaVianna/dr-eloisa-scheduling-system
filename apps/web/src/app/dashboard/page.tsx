@@ -1,12 +1,5 @@
-import { getCurrentUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
-
-  return (
-    <main>
-      <h1>Painel</h1>
-      <p>Logada como {user.role === 'DENTIST' ? 'dentista' : 'equipe'}.</p>
-    </main>
-  );
+export default function DashboardPage() {
+  redirect('/dashboard/agenda');
 }

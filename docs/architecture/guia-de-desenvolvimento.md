@@ -723,6 +723,9 @@ Permanentes na regressão:
 - `shared-types` sem `dist/` → o api falha ao importar; rode o build.
 - Docker Desktop não inicia sozinho (erro de pipe no `docker ps`).
 - PowerShell: `$env:VAR="x"; comando`, não `VAR=x comando`.
+- O build do api gera `dist/src/main.js` (o `rootDir` inclui `prisma/`), por isso o
+  `start:prod` é `node dist/src/main`.
+- `jsdom` 30 exige Node ≥ 22.22 (puxa `undici` 8); no Node 22.14 use o 29.1.1 (ADR 033).
 
 ---
 
@@ -743,7 +746,7 @@ fatia 1, antes das features.
       (`test/support/load-test-env.ts`) e tirar o `dotenv` do topo dos arquivos.
 - [ ] `test:e2e` com `--runInBand`; criar `test:int`, `test/jest-int.json` e
       `global-setup.ts` (migra o `agendamento_test` e recusa outro banco).
-- [ ] Runner de testes no web: Vitest (+ Testing Library, jsdom) e Playwright, versões
+- [x] Runner de testes no web: Vitest (+ Testing Library, jsdom) e Playwright, versões
       exatas pela regra da [3.10](#3-10-dependencia); scripts `test` e `test:e2e`.
 
 **Build e scripts**
@@ -754,12 +757,12 @@ fatia 1, antes das features.
 - [ ] `packages/shared-types` com build real ([arquitetura 3.7](arquitetura.md#3-7-shared-types)).
 
 **Web**
-- [ ] `apps/web/src/app/layout.tsx`: `lang="en"` → `lang="pt-BR"`; `metadata` com título e
+- [x] `apps/web/src/app/layout.tsx`: `lang="en"` → `lang="pt-BR"`; `metadata` com título e
       descrição da clínica (hoje "Create Next App").
-- [ ] Comentário em `apps/web/src/app/api/refresh-and-continue/route.ts` chama o
+- [x] Comentário em `apps/web/src/app/api/refresh-and-continue/route.ts` chama o
       `proxy.ts` de "Edge-style middleware"; no Next 16 o proxy roda em Node.js por
       padrão. Corrigir o texto (o código está certo).
-- [ ] `apps/web/src/app/page.tsx` ainda é o template do `create-next-app`; vira a entrada
+- [x] `apps/web/src/app/page.tsx` ainda é o template do `create-next-app`; vira a entrada
       do agendamento dentro de `(public)/`.
 
 **Antes do primeiro deploy (não bloqueia a fatia 1, mas está no caminho)**
