@@ -24,8 +24,8 @@ test.describe('[P] smoke da fundação do web', () => {
     // Dado a dentista do seed
     // Quando faz login pela tela
     await loginAsDentistViaUi(page);
-    // Então o /dashboard redireciona para a agenda.
-    // Tarefa 17: passa a exigir o título 'Agenda' (a página ainda é 404 aqui; só a URL vale).
+    // Então o /dashboard redireciona para a agenda, com o título "Agenda"
     await expect(page).toHaveURL(/\/dashboard\/agenda$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Agenda' })).toBeVisible();
   });
 });

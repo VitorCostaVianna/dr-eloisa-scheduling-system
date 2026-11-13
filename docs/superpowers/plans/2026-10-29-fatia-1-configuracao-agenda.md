@@ -1171,7 +1171,7 @@ export function layoutWeek(cal: CalendarResponse, opts: { firstMinute: number; l
 ```
 
 **Comportamento:** `/dashboard/agenda?semana=YYYY-MM-DD` (padrão: semana de hoje; navegação
-anterior/próxima). Server lê `GET /calendar?from=seg&to=dom`. A `WeekView` (Client, só
+anterior/próxima). Server lê `GET /calendar?from=seg&to=dom`. A `WeekView` (Server Component, sem `'use client'`, só
 leitura) é uma grade de 07:00 a 19:00 em linhas de 15 min, com:
 - faixas de atendimento em fundo claro;
 - bloqueios hachurados com o motivo;
