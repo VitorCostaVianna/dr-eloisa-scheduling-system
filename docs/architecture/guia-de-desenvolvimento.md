@@ -37,12 +37,12 @@ cp apps/web/.env.local.example apps/web/.env.local
 docker compose up -d                              # Postgres 16.15 (+ Mailpit a partir da fatia 4)
 pnpm install                                      # roda `prisma generate`
 pnpm --filter api exec prisma migrate deploy      # banco de dev
-pnpm --filter api db:seed                         # dentista (+ Professional e horário, fatia 1)
+pnpm --filter api db:seed                         # dentista + Professional e horário
 pnpm dev                                          # api :3001, web :3000
 ```
 
-Banco de teste: aplicado automaticamente pelo `globalSetup` a partir da fatia 1; antes
-disso, à mão ([1.5](#1-5-banco)).
+Banco de teste: aplicado automaticamente pelo `globalSetup`; à mão só se precisar
+([1.5](#1-5-banco)).
 
 <a id="1-3-comandos"></a>
 ### 1.3 Comandos do dia a dia
@@ -55,11 +55,11 @@ disso, à mão ([1.5](#1-5-banco)).
 | Build | `pnpm build` | existe |
 | Unit (api) | `pnpm --filter api test` | existe |
 | Um critério | `pnpm --filter api test -- -t "CA-1.1]"` (o `]` final impede que `CA-1.1` case com `CA-1.10`; não use `\[`: no Windows o pnpm dobra a barra e o regex quebra) | existe |
-| E2E da API | `pnpm --filter api test:e2e` (ganha `--runInBand` na fatia 1) | existe |
-| Integração | `pnpm --filter api test:int` | fatia 1 |
-| Typecheck | `pnpm typecheck` | fatia 1 |
-| Build do shared-types | `pnpm --filter @sistema-agendamento/shared-types build` | fatia 1 |
-| Testes do web | `pnpm --filter web test` (Vitest) · `pnpm --filter web test:e2e` (Playwright) | fatia 1 |
+| E2E da API | `pnpm --filter api test:e2e` (com `--runInBand`) | existe |
+| Integração | `pnpm --filter api test:int` | existe |
+| Typecheck | `pnpm typecheck` | existe |
+| Build do shared-types | `pnpm --filter @sistema-agendamento/shared-types build` | existe |
+| Testes do web | `pnpm --filter web test` (Vitest) · `pnpm --filter web test:e2e` (Playwright) | existe |
 | Prisma Studio | `pnpm --filter api exec prisma studio` | existe |
 | Migration | `pnpm --filter api exec prisma migrate dev --name <nome_snake>` | existe |
 | Seed | `pnpm --filter api db:seed` | existe |
@@ -72,7 +72,7 @@ disso, à mão ([1.5](#1-5-banco)).
 |---|---|---|---|
 | `.env` (raiz) | só comandos de shell | `DATABASE_URL`, `DATABASE_URL_TEST` | — |
 | `apps/api/.env` | `dotenv/config` no `main.ts`, Prisma CLI, seed | `PORT`, `DATABASE_URL`, `CORS_ORIGIN`, `JWT_SECRET`, `SEED_DENTIST_*` | `TZ=UTC`, `WEB_BASE_URL`, `SCHEDULER_ENABLED` (1); `TURNSTILE_SECRET_KEY` (3); `EMAIL_SENDER`, `MAILPIT_URL`, `MAIL_FROM`, `MAIL_REPLY_TO`, `DENTIST_NOTIFICATION_EMAIL`, `CLINIC_NAME`, `CLINIC_PHONE`, `CLINIC_ADDRESS` (4; `CLINIC_PHONE` já na 3, para a mensagem da RN-18). `COOKIE_DOMAIN` fica **ausente** em dev |
-| `apps/api/.env.test` | testes (`dotenv` no topo de cada arquivo hoje; `setupFiles` na fatia 1) | `DATABASE_URL` → `agendamento_test`, `JWT_SECRET` | `CORS_ORIGIN`, `SCHEDULER_ENABLED=false`, `EMAIL_SENDER=fake`, `WEB_BASE_URL`, `CLINIC_PHONE` |
+| `apps/api/.env.test` | testes (`setupFiles` → `test/support/load-test-env.ts`) | `DATABASE_URL` → `agendamento_test`, `JWT_SECRET` | `CORS_ORIGIN`, `SCHEDULER_ENABLED=false`, `EMAIL_SENDER=fake`, `WEB_BASE_URL`, `CLINIC_PHONE` |
 | `apps/web/.env.local` | Next | `NEXT_PUBLIC_API_URL` | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (3) |
 
 - Cada var nova vai no `.example` correspondente no mesmo commit.
@@ -87,12 +87,12 @@ disso, à mão ([1.5](#1-5-banco)).
 
 | Ação | bash | PowerShell |
 |---|---|---|
-| Migrar o banco de teste (antes da fatia 1) | `DATABASE_URL="postgresql://agendamento:agendamento_dev_only@localhost:5432/agendamento_test" pnpm --filter api exec prisma migrate deploy` | `$env:DATABASE_URL="postgresql://agendamento:agendamento_dev_only@localhost:5432/agendamento_test"; pnpm --filter api exec prisma migrate deploy; Remove-Item Env:DATABASE_URL` |
+| Migrar o banco de teste à mão (o `globalSetup` já faz) | `DATABASE_URL="postgresql://agendamento:agendamento_dev_only@localhost:5432/agendamento_test" pnpm --filter api exec prisma migrate deploy` | `$env:DATABASE_URL="postgresql://agendamento:agendamento_dev_only@localhost:5432/agendamento_test"; pnpm --filter api exec prisma migrate deploy; Remove-Item Env:DATABASE_URL` |
 | Resetar o dev (apaga, reaplica, roda o seed) | `pnpm --filter api exec prisma migrate reset` | idem |
 | Zerar o volume | `docker compose down -v && docker compose up -d` | `docker compose down -v; docker compose up -d` |
 | psql | `docker compose exec postgres psql -U agendamento -d agendamento_dev` | idem |
 
-Teste só no `agendamento_test`. O `globalSetup` (fatia 1) aborta se o nome do banco não
+Teste só no `agendamento_test`. O `globalSetup` aborta se o nome do banco não
 terminar em `_test`.
 
 ---
@@ -220,7 +220,7 @@ A lista pública é **fechada** (spec 7). Só siga esta receita com spec/ADR aut
 3. **Ler o SQL gerado**; apagar qualquer `DROP` de objeto feito à mão
    (`no_overlapping_appointments`, `service_active_name_ci_key`, CHECKs).
 4. `pnpm --filter api exec prisma migrate dev`.
-5. Banco de teste: `globalSetup` (fatia 1) ou manual ([1.5](#1-5-banco)).
+5. Banco de teste: `globalSetup` ou manual ([1.5](#1-5-banco)).
 6. Commitar o schema e a pasta da migration juntos. Nunca editar migration já aplicada.
 
 **Valor novo em enum do Postgres:** migration A só com os `ADD VALUE` (valor no **fim** do
@@ -346,15 +346,12 @@ Não mockar Prisma em caso de uso (o `auth.service.spec.ts` mocka porque ali nã
 de banco).
 
 <a id="4-2-configuracao"></a>
-### 4.2 Configuração das suítes (fundação da fatia 1)
+### 4.2 Configuração das suítes
 
-Hoje (existe):
+Tudo existe (pago na fundação da fatia 1):
 - unit: config no `package.json` do api (`rootDir: src`, `.*\.spec\.ts$`);
-- e2e: `test/jest-e2e.json` (`.e2e-spec.ts$`);
-- cada e2e carrega o `.env.test` à mão;
-- a app de teste é criada sem o setup do `main.ts`.
-
-A criar: ver a [seção 8](#8-dividas-fatia-1), itens de infraestrutura de teste. Resumo:
+- e2e e integração: `test/jest-e2e.json` e `test/jest-int.json`, ambos com `setupFiles`
+  (`load-test-env.ts`); a de integração também com `globalSetup`.
 
 | Arquivo | Conteúdo |
 |---|---|
@@ -741,29 +738,29 @@ só o lint, que no CI não leva `--fix`.
 <a id="8-dividas-fatia-1"></a>
 ## 8. Dívidas a pagar na fatia 1
 
-Itens encontrados no código atual. Nenhum foi alterado ainda; todos entram na fundação da
-fatia 1, antes das features.
+Itens encontrados no código antes da fatia 1. Os da fundação foram pagos (fechamento da
+fatia 1, 2026-11-13); os de "antes do primeiro deploy" continuam abertos de propósito.
 
 **Infraestrutura de teste**
-- [ ] Extrair `apps/api/src/common/configure-app.ts` do `main.ts` (helmet, cookie-parser,
+- [x] Extrair `apps/api/src/common/configure-app.ts` do `main.ts` (helmet, cookie-parser,
       CORS, `ValidationPipe`, `trust proxy`) e usá-lo no `main.ts` e nos testes. Hoje os
       e2e criam a app sem nada disso; o `auth.e2e-spec.ts` acrescenta só o
       `cookieParser`.
-- [ ] `apps/api/test/app.e2e-spec.ts` não carrega o `.env.test`, mas o `AppModule` exige
+- [x] `apps/api/test/app.e2e-spec.ts` não carrega o `.env.test`, mas o `AppModule` exige
       `JWT_SECRET` no import e `DATABASE_URL` no boot; hoje depende do ambiente do shell
       (não verificado: Docker parado). Resolver com `setupFiles`
       (`test/support/load-test-env.ts`) e tirar o `dotenv` do topo dos arquivos.
-- [ ] `test:e2e` com `--runInBand`; criar `test:int`, `test/jest-int.json` e
+- [x] `test:e2e` com `--runInBand`; criar `test:int`, `test/jest-int.json` e
       `global-setup.ts` (migra o `agendamento_test` e recusa outro banco).
 - [x] Runner de testes no web: Vitest (+ Testing Library, jsdom) e Playwright, versões
       exatas pela regra da [3.10](#3-10-dependencia); scripts `test` e `test:e2e`.
 
 **Build e scripts**
-- [ ] `turbo.json`: `dev` com `"dependsOn": ["^build"]` (hoje só `build` e `test` têm).
-- [ ] Script `typecheck` em cada pacote (`api: tsc --noEmit -p tsconfig.json`;
+- [x] `turbo.json`: `dev` com `"dependsOn": ["^build"]` (hoje só `build` e `test` têm).
+- [x] Script `typecheck` em cada pacote (`api: tsc --noEmit -p tsconfig.json`;
       `web: next typegen && tsc --noEmit`; `shared-types: tsc --noEmit`), tarefa
       `typecheck` no turbo e `"typecheck": "turbo run typecheck"` na raiz.
-- [ ] `packages/shared-types` com build real ([arquitetura 3.7](arquitetura.md#3-7-shared-types)).
+- [x] `packages/shared-types` com build real ([arquitetura 3.7](arquitetura.md#3-7-shared-types)).
 
 **Web**
 - [x] `apps/web/src/app/layout.tsx`: `lang="en"` → `lang="pt-BR"`; `metadata` com título e

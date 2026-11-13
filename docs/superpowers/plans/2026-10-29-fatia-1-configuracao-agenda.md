@@ -865,7 +865,7 @@ Rotas: `GET /holidays?year=` (`@IsInt @Min(2000) @Max(2100)`, `@Type(() => Numbe
 
 Ajustes da revisão (2026-11-05): o `POST` aceita só anos `HOLIDAY_YEAR_MIN`..`HOLIDAY_YEAR_MAX`
 (2000–2100, constantes do `shared-types`, as mesmas do `GET`; fora → 400 `fields: ['date']`),
-para não gravar desbloqueio que nenhuma listagem mostra. Data passada continua aceita (sem RN).
+para não gravar desbloqueio que nenhuma listagem mostra. Data passada continua aceita (sem RN). Confirmado pelo usuário em 2026-11-13: a dentista tem flexibilidade total sobre o calendário, inclusive feriado passado.
 O `upsert` é um único `INSERT … ON CONFLICT … RETURNING` (`$queryRaw` com template), para um
 `DELETE` concorrente não gerar 500. O log `holiday_override.deleted` só sai quando apagou linha.
 

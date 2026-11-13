@@ -675,7 +675,7 @@ real (ADR 033); mais arquivos por feature. As regras de import viram lint quando
 ## 022 — Luxon 3.7.2 e um único helper de fuso; dias como `YYYY-MM-DD` locais
 
 **Data:** 2026-10-28
-**Status:** Proposta
+**Status:** Aceita (usuário, 2026-11-13; versões instaladas conferidas no fechamento da fatia 1)
 
 **Contexto:** toda regra de calendário (dia da semana, faixa, feriado, manhã/tarde, 07:00 do
 lembrete, bloqueio de dia inteiro) é avaliada em `America/Sao_Paulo`, no backend também
@@ -992,7 +992,7 @@ topologia virar cross-site, continua valendo o alerta da ADR 018 (Decisão 2).
 ## 033 — Infraestrutura de teste
 
 **Data:** 2026-10-28
-**Status:** Proposta
+**Status:** Aceita (usuário, 2026-11-13; versões instaladas conferidas no fechamento da fatia 1)
 
 **Contexto:** hoje a app de teste é criada sem o setup do `main.ts`, cada e2e carrega o
 `.env.test` à mão e não há suíte de integração nem testes no web (guia §4.2). Os critérios
@@ -1138,7 +1138,7 @@ Marcar os três jobs como obrigatórios na proteção do `main`, com cuidado com
 | 019 | Regras de agenda da reunião de 28/10: aprovação manual, duração por procedimento, horário semanal, feriados, e-mail obrigatório + lembrete | Negócio |
 | 020 | Modelo do módulo de Agenda: `ScheduleBlock` + feriados calculados + `HolidayOverride`, predicado da constraint, `Patient.email` opcional e telefone E.164, token 256 bits no fragmento, `REJECTED`/`EXPIRED`/`SYSTEM`, auditoria, outbox, expurgo de 7 dias, cookie em `agenda.` (proposta) | Dados/Segurança |
 | 021 | Camadas: `domain/` puro, `application/` dona da transação, `infra/` e `http/` finos (proposta) | Backend |
-| 022 | Luxon 3.7.2 num único helper de fuso, `Clock` injetável, dias `YYYY-MM-DD` locais (proposta) | Backend/Frontend |
+| 022 | Luxon 3.7.2 num único helper de fuso, `Clock` injetável, dias `YYYY-MM-DD` locais | Backend/Frontend |
 | 023 | `@nestjs/schedule@6.1.3` e `@nestjs/event-emitter@3.1.0` pinados nas linhas CJS (proposta) | Infra |
 | 024 | Modelo de erro com `code` estável; códigos públicos únicos (`SLOT_UNAVAILABLE`, `BOOKING_NOT_ALLOWED`, `INVALID_LINK`) (proposta) | Backend/Segurança |
 | 025 | Lock consultivo por profissional + `UPDATE` condicional com `now` da aplicação (proposta) | Concorrência |
@@ -1149,7 +1149,7 @@ Marcar os três jobs como obrigatórios na proteção do `main`, com cuidado com
 | 030 | `class-validator` autoritativo, Zod só no web, `shared-types` com build CJS (proposta) | Backend/Frontend |
 | 031 | Calendário próprio em CSS grid, formulário antes de arrastar (proposta) | Frontend |
 | 032 | CSRF: 415 para mutação com `Content-Type` não JSON (proposta) | Segurança |
-| 033 | Infra de teste: `configureApp` compartilhado, Jest unit/int/e2e, Vitest + Playwright, `[CA-x.y]` (proposta) | Testes |
+| 033 | Infra de teste: `configureApp` compartilhado, Jest unit/int/e2e, Vitest + Playwright, `[CA-x.y]` | Testes |
 | 034 | Throttlers `default` + `hourly` em memória (proposta) | Segurança |
 | 035 | `libphonenumber-js@1.13.11`, a mesma do `class-validator` (proposta) | Backend |
 | 036 | Pipeline de CI em GitHub Actions, três camadas (proposta) | Infra/Testes |
