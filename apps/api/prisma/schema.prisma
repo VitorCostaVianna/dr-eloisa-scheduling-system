@@ -24,16 +24,42 @@ enum AppointmentStatus {
   CANCELLED
   COMPLETED
   NO_SHOW
+  // Novos valores ficam no fim: ALTER TYPE ADD VALUE só acrescenta ao final.
+  REJECTED
+  EXPIRED
 }
 
-enum ExceptionType {
-  CLOSED
-  CUSTOM_HOURS
-}
-
+// Quem originou o cancelamento; SYSTEM = rotinas automáticas (ex.: expiração). Também é
+// o "actor" de AppointmentEvent.
 enum CancelledBy {
   PATIENT
   DENTIST
+  SYSTEM
+}
+
+// Motivo do cancelamento (spec 6.4), separado de quem cancelou.
+enum CancelReason {
+  PATIENT
+  DENTIST
+  BLOCK
+  APPROVAL_TIMEOUT
+}
+
+enum AppointmentSource {
+  PUBLIC
+  DENTIST
+}
+
+enum AppointmentEventType {
+  REQUESTED
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  RESCHEDULED
+  CONTACT_UPDATED
+  COMPLETED
+  NO_SHOW
 }
 
 model User {
@@ -79,8 +105,10 @@ model Professional {
 
   services     Service[]            @relation("ProfessionalServices")
   workingHours WorkingHours[]
-  exceptions   ScheduleException[]
   appointments Appointment[]
+
+  blocks           ScheduleBlock[]
+  holidayOverrides HolidayOverride[]
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -103,7 +131,8 @@ model Service {
 model Patient {
   id    String @id @default(uuid())
   name  String
-  phone String @unique
+  phone String  @unique // E.164, imutável na v1
+  email String?
 
   appointments Appointment[]
 
@@ -129,34 +158,51 @@ model WorkingHours {
   @@index([professionalId, dayOfWeek])
 }
 
-// Data específica que desvia da regra recorrente: feriado fechado, ou horário
-// customizado só naquele dia.
-model ScheduleException {
-  id             String        @id @default(uuid())
-  professional   Professional  @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+// Bloqueio de agenda (férias, curso, tarde de folga). Intervalo semiaberto [startAt, endAt);
+// dia inteiro = 00:00 local do primeiro dia até 00:00 local do dia seguinte ao último.
+// CHECK startAt < endAt vive na migration (Prisma não representa CHECK).
+model ScheduleBlock {
+  id             String       @id @default(uuid())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   professionalId String
 
-  date        DateTime      @db.Date
-  type        ExceptionType
-  startMinute Int? // usado só quando type = CUSTOM_HOURS
-  endMinute   Int?
-  reason      String?
+  startAt DateTime  @db.Timestamptz(3)
+  endAt   DateTime  @db.Timestamptz(3)
+  reason  String? // só a dentista vê
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([professionalId, startAt])
+}
+
+// Desbloqueio de um feriado calculado (nacional/BH): sem linha o feriado fecha a agenda;
+// com linha, vale o horário normal. Tabela própria porque bloqueio só subtrai horário.
+model HolidayOverride {
+  id             String       @id @default(uuid())
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  professionalId String
+
+  date DateTime @db.Date // localDateToDbDate('YYYY-MM-DD')
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@unique([professionalId, date])
-  @@index([professionalId, date])
 }
 
 model Appointment {
   id             String       @id @default(uuid())
   professional   Professional @relation(fields: [professionalId], references: [id])
   professionalId String
-  service        Service      @relation(fields: [serviceId], references: [id])
-  serviceId      String
+  // Opcional: pedido público pode vir sem procedimento. Restrict explícito (spec 6.4).
+  service        Service?     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  serviceId      String?
   patient        Patient      @relation(fields: [patientId], references: [id])
   patientId      String
+
+  source       AppointmentSource
+  // Nome/e-mail informados neste agendamento (podem divergir do cadastro do Patient).
+  contactName  String
+  contactEmail String?
 
   // endAt = startAt + service.durationMinutes no momento da criação (denormalizado
   // para a exclusion constraint não depender de join). @db.Timestamptz(3): sem isto o
@@ -168,10 +214,19 @@ model Appointment {
 
   status AppointmentStatus @default(PENDING)
 
+  confirmedAt DateTime? @db.Timestamptz(3)
+
   // Link público /cancelar/{token} — única porta de entrada do paciente sem login.
-  cancellationToken String       @unique @default(uuid())
+  // Sem default: a aplicação gera (randomBytes(32) base64url) e rotaciona (RN-38).
+  cancellationToken String?       @unique
   cancelledBy       CancelledBy?
-  cancelledAt       DateTime?    @db.Timestamptz(3)
+  cancelReason      CancelReason?
+  cancelledAt       DateTime?     @db.Timestamptz(3)
+
+  rejectionMessage String? // ≤ 500, texto da dentista
+  suggestedStartAt DateTime? @db.Timestamptz(3)
+  // REJECTED/CANCELLED/EXPIRED — base do expurgo.
+  closedAt         DateTime? @db.Timestamptz(3)
 
   // Chave enviada pelo front por tentativa de agendamento; retry/duplo clique com a
   // mesma chave não cria um segundo registro.
@@ -179,9 +234,55 @@ model Appointment {
 
   notes String?
 
+  events        AppointmentEvent[]
+  notifications Notification[]
+
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([professionalId, startAt])
   @@index([patientId])
+  @@index([status, startAt])
+  @@index([status, closedAt])
+}
+
+// Trilha de auditoria das transições (spec 6.7). Sem dado pessoal.
+model AppointmentEvent {
+  id            String      @id @default(uuid())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId String
+
+  type        AppointmentEventType
+  actor       CancelledBy
+  fromStatus  AppointmentStatus?
+  toStatus    AppointmentStatus
+  fromStartAt DateTime?          @db.Timestamptz(3)
+  fromEndAt   DateTime?          @db.Timestamptz(3)
+  toStartAt   DateTime?          @db.Timestamptz(3)
+  toEndAt     DateTime?          @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([appointmentId])
+}
+
+// Fila de e-mail com idempotência (spec 6.8). kind/status são String com união no TS:
+// kind cresce e cada valor de enum custaria duas migrations.
+model Notification {
+  id            String       @id @default(uuid())
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointmentId String?
+
+  kind          String
+  dedupeKey     String    @unique
+  status        String // 'PENDING' | 'SENT' | 'FAILED'
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @db.Timestamptz(3)
+  sentAt        DateTime? @db.Timestamptz(3)
+  lastError     String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3) // a aplicação informa (RN-63)
+
+  @@index([status, nextAttemptAt])
+  @@index([appointmentId, kind, createdAt])
 }

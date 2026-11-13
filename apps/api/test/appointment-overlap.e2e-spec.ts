@@ -1,12 +1,5 @@
-import { config } from 'dotenv';
-import { resolve } from 'path';
-
-// jest não sabe nada sobre .env — precisa carregar manualmente ANTES de instanciar o
-// PrismaClient (ele lê DATABASE_URL de process.env no momento da construção).
-// Apontamos pro banco de TESTE (agendamento_test), nunca pro de desenvolvimento.
-config({ path: resolve(__dirname, '../.env.test') });
-
 import { PrismaClient } from '@prisma/client';
+import { truncateAll } from './support/db';
 
 describe('Appointment overlap prevention (exclusion constraint)', () => {
   const prisma = new PrismaClient();
@@ -15,6 +8,7 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
   let patientId: string;
 
   beforeAll(async () => {
+    await truncateAll(prisma);
     const professional = await prisma.professional.create({
       data: { name: 'Profissional de Teste' },
     });
@@ -55,6 +49,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 
@@ -65,6 +61,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 
@@ -82,8 +80,10 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
     // (23P01, nome da constraint) só existe dentro de .message como texto puro.
     // Confirmado rodando o teste com console.log antes de escrever esta asserção —
     // nunca adivinhar a forma de um erro de biblioteca externa.
-    const rejection = rejected[0] as PromiseRejectedResult;
-    expect(rejection.reason.constructor.name).toBe('PrismaClientUnknownRequestError');
+    const rejection = rejected[0];
+    expect(rejection.reason.constructor.name).toBe(
+      'PrismaClientUnknownRequestError',
+    );
     expect(rejection.reason.message).toContain('no_overlapping_appointments');
     expect(rejection.reason.message).toContain('23P01');
   });
@@ -96,6 +96,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 
@@ -106,6 +108,8 @@ describe('Appointment overlap prevention (exclusion constraint)', () => {
         professionalId,
         serviceId,
         patientId,
+        source: 'DENTIST',
+        contactName: 'Paciente de Teste',
       },
     });
 

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import * as argon2 from 'argon2';
+import { runSeed } from './seed-data';
 
 const prisma = new PrismaClient();
 
@@ -14,15 +14,7 @@ async function main() {
     );
   }
 
-  const passwordHash = await argon2.hash(password);
-
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: { passwordHash },
-    create: { email, passwordHash, role: 'DENTIST' },
-  });
-
-  console.log(`Usuária seedada: ${user.email} (id ${user.id})`);
+  await runSeed(prisma, { email, password });
 }
 
 main()
