@@ -1078,6 +1078,39 @@ Usado em `domain/phone.ts` e no validador `@IsBrPhone()` (arquitetura §2.6).
 metadados de numeração envelhecem; ao atualizar, conferir a versão usada pelo
 `class-validator`.
 
+## 036 — Pipeline de CI no GitHub Actions, em três camadas
+
+**Data:** 2026-11-12
+**Status:** Proposta
+
+**Contexto:** a regressão do guia §4.8 (8 comandos) era manual, rodava só na máquina de quem
+implementou e o aceite dependia dessa mesma máquina. Já houve falhas que só uma execução
+limpa revela: `dist` do `shared-types` desatualizado e o limite de 5 logins/min do
+`/auth/login` estourando no Playwright. O repositório já está no GitHub.
+
+**Decisão:** `.github/workflows/ci.yml`, em PR para `main` e em push no `main`
+(`paths-ignore` para docs), com três jobs:
+1. `static-and-unit` (sem banco): build do shared-types (o lint do api é type-aware e lê o
+   `dist`), lint **sem** `--fix`, `typecheck`, `pnpm test`, `build`.
+2. `api-integration` (`needs` 1; Postgres 16.15 como service): `test:int` e `test:e2e`, serial.
+3. `web-e2e` (`needs` 1; Postgres 16.15): Playwright; traço enviado como artefato só em falha.
+
+Os jobs 2 e 3 rodam em paralelo. Concorrência cancela rodadas antigas de PR, não a em andamento
+do `main`. Actions fixadas por SHA de commit (tag no comentário), só versões que rodam em Node 24
+(o GitHub removeu o Node 20 dos runners em 2026-09), `permissions: contents: read`,
+Node 22 (`.nvmrc`), pnpm 9.12.0 via `npm i -g` (como em dev), `pnpm install --frozen-lockfile`,
+`.env.test` copiado do `.example`. Sem deploy, sem execução agendada, sem matriz de Node.
+
+**Alternativas rejeitadas:** um job único (feedback lento e sem paralelismo); rodar tudo
+sempre sem `needs` (gasta minutos de Playwright quando o lint já falhou); execução noturna
+(um desenvolvedor e uma cliente: o `main` só muda por PR); `--fix` no CI (esconderia o erro).
+
+**Consequências:** o aceite passa a ter uma execução neutra. Teste instável aparece como
+vermelho (sem `retries`; guia §7.5). Bumpar uma action exige trocar o SHA e conferir a idade
+da versão (guia §3.10). O Playwright depende do `pnpm-lock.yaml` para a chave do cache.
+Marcar os três jobs como obrigatórios na proteção do `main`, com cuidado com `paths-ignore`
+(job ignorado fica "pendente" e bloqueia o merge).
+
 ---
 
 ## Índice rápido
@@ -1119,3 +1152,4 @@ metadados de numeração envelhecem; ao atualizar, conferir a versão usada pelo
 | 033 | Infra de teste: `configureApp` compartilhado, Jest unit/int/e2e, Vitest + Playwright, `[CA-x.y]` (proposta) | Testes |
 | 034 | Throttlers `default` + `hourly` em memória (proposta) | Segurança |
 | 035 | `libphonenumber-js@1.13.11`, a mesma do `class-validator` (proposta) | Backend |
+| 036 | Pipeline de CI em GitHub Actions, três camadas (proposta) | Infra/Testes |

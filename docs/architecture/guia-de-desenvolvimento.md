@@ -21,7 +21,7 @@ Marcadores:
 
 | Item | Versão | Observação |
 |---|---|---|
-| Node | 20 (`.nvmrc`); Next 16 exige ≥ 20.9 | |
+| Node | 22 (`.nvmrc`); Next 16 exige ≥ 20.9 | |
 | pnpm | 9.12.0 (`packageManager`) | `npm i -g pnpm@9.12.0`, **não** corepack |
 | Docker Desktop | recente | No Windows, abrir manualmente antes de `docker compose` |
 | Shell | Git Bash ou PowerShell | Exemplos em bash; PowerShell em [1.5](#1-5-banco) |
@@ -540,6 +540,15 @@ Permanentes na regressão:
 - CA-3.29 (expurgo);
 - `appointment-overlap.e2e-spec.ts`;
 - `auth.e2e-spec.ts`.
+
+<a id="4-9-ci"></a>
+### 4.9 Pipeline de CI
+
+`.github/workflows/ci.yml` (ADR 036) roda a regressão da [4.8](#4-8-regressao) em PR e no
+`main`: `static-and-unit` → (`api-integration` ‖ `web-e2e`). Ela **não substitui** o
+aceite: o testador ainda roda e cola a saída; a pipeline é a segunda execução, numa máquina
+limpa. Para reproduzir um job localmente, use os comandos do próprio arquivo. A diferença é
+só o lint, que no CI não leva `--fix`.
 
 ---
 
