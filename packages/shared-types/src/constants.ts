@@ -15,3 +15,5 @@ export const AVAILABILITY_MAX_DAYS = 31;
 // Faixa de anos de GET /holidays e POST /holiday-overrides (fora dela o desbloqueio ficaria invisível).
 export const HOLIDAY_YEAR_MIN = 2000;
 export const HOLIDAY_YEAR_MAX = 2100;
+// Janela máxima de GET /blocks (from..to, em dias).
+export const BLOCKS_LIST_MAX_DAYS = 366;

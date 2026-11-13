@@ -1121,12 +1121,12 @@ Receita: guia §3.8. Critérios (P): **CA-1.8**, **CA-1.23**.
   `apps/web/src/components/schedule/{block-form,block-list,holiday-list}.tsx` (+ `.test.tsx`),
   `apps/web/e2e/fatia-1/bloqueios-feriados.spec.ts`
 - `shared-types/src/schemas.ts`: `blockFormSchema` (dia inteiro: `fromDate ≤ toDate`;
-  período: data + hora de início/fim, fim > início, reason ≤ 200)
+  período: data e hora de início + data e hora de fim, fim > início, reason ≤ 200)
 
 **Comportamento:**
 - `searchParams.ano` (padrão: ano de `todayInClinic()`).
 - Bloqueios: `GET /blocks?from=hoje&to=hoje+365`, cada um com período no fuso da clínica e
-  motivo. Formulário "Dia(s) inteiro(s)" (de/até) ou "Período" (data, início, fim). O
+  motivo. Formulário "Dia(s) inteiro(s)" (de/até) ou "Período" (data, início, data de fim, fim; RN-42). O
   período vira ISO com o offset certo via `clinic-time` do web (função
   `clinicLocalToIso(date, 'HH:mm')`, acrescentada lá). Excluir, com confirmação por
   `Dialog` (nunca `window.confirm`).

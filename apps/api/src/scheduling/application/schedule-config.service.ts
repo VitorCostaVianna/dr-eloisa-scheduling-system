@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type {
-  CreateBlockRequest,
-  WorkingHoursDto,
+import {
+  BLOCKS_LIST_MAX_DAYS,
+  type CreateBlockRequest,
+  type WorkingHoursDto,
 } from '@sistema-agendamento/shared-types';
 import { DomainError } from '../../common/errors/domain-error';
 import { assertLocalRange } from '../../common/validation/assert-local-range';
@@ -15,8 +16,6 @@ import {
 } from '../../common/time/clinic-time';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BlockRecord, ScheduleRepository } from '../infra/schedule.repository';
-
-const LIST_MAX_DAYS = 366;
 
 @Injectable()
 export class ScheduleConfigService {
@@ -38,7 +37,7 @@ export class ScheduleConfigService {
     from: LocalDate,
     to: LocalDate,
   ): Promise<BlockRecord[]> {
-    assertLocalRange(from, to, LIST_MAX_DAYS);
+    assertLocalRange(from, to, BLOCKS_LIST_MAX_DAYS);
     return this.schedule.findBlocksIntersecting(
       professionalId,
       startOfLocalDay(from),

@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addDays,
+  clinicLocalToIso,
   formatClinicDate,
   formatClinicTime,
   localDateOf,
@@ -123,6 +124,35 @@ describe.each(['America/Sao_Paulo', 'UTC', 'Asia/Tokyo'])(
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-11-10T03:30:00.000Z'));
         expect(todayInClinic()).toBe('2026-11-10');
+      });
+    });
+
+    describe('clinicLocalToIso', () => {
+      it('[W] 09/11 09:15 em Brasília é 12:15Z', () => {
+        expect(clinicLocalToIso('2026-11-09', '09:15')).toBe('2026-11-09T12:15:00.000Z');
+      });
+
+      it('[W] 09/11 09:45 em Brasília é 12:45Z', () => {
+        expect(clinicLocalToIso('2026-11-09', '09:45')).toBe('2026-11-09T12:45:00.000Z');
+      });
+
+      it('[W] 23:30 local cai no dia seguinte em UTC', () => {
+        expect(clinicLocalToIso('2026-11-09', '23:30')).toBe('2026-11-10T02:30:00.000Z');
+      });
+
+      it('[W] 00:00 local é 03:00Z do mesmo dia', () => {
+        expect(clinicLocalToIso('2026-11-09', '00:00')).toBe('2026-11-09T03:00:00.000Z');
+      });
+
+      it('[W] é o inverso de localDateOf/formatClinicTime', () => {
+        const iso = clinicLocalToIso('2026-12-08', '13:30');
+        expect(localDateOf(iso)).toBe('2026-12-08');
+        expect(formatClinicTime(iso)).toBe('13:30');
+      });
+
+      it('[W] data ou hora inválida lança', () => {
+        expect(() => clinicLocalToIso('2026-13-40', '09:15')).toThrow();
+        expect(() => clinicLocalToIso('2026-11-09', '25:00')).toThrow();
       });
     });
   },

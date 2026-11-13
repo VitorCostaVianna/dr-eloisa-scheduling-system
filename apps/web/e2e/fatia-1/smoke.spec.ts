@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { loginAsDentist } from '../support/login';
+import { loginAsDentistViaUi } from '../support/login';
 
 // Camada P. Fundação do web (Tarefa 14): idioma, página pública e guarda do painel.
 test.describe('[P] smoke da fundação do web', () => {
@@ -23,7 +23,7 @@ test.describe('[P] smoke da fundação do web', () => {
   test('[P] depois do login a dentista cai em /dashboard/agenda', async ({ page }) => {
     // Dado a dentista do seed
     // Quando faz login pela tela
-    await loginAsDentist(page);
+    await loginAsDentistViaUi(page);
     // Então o /dashboard redireciona para a agenda.
     // Tarefa 17: passa a exigir o título 'Agenda' (a página ainda é 404 aqui; só a URL vale).
     await expect(page).toHaveURL(/\/dashboard\/agenda$/);

@@ -5,6 +5,7 @@ import { CLINIC_TIME_ZONE } from '@sistema-agendamento/shared-types';
 
 const LOCALE = 'pt-BR';
 const LOCAL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const LOCAL_TIME_RE = /^\d{2}:\d{2}$/;
 
 function inClinic(instantIso: string): DateTime {
   const dt = DateTime.fromISO(instantIso, { zone: CLINIC_TIME_ZONE });
@@ -53,4 +54,14 @@ export function addDays(date: string, n: number): string {
 /** Hoje no fuso da clínica. Lê o relógio do sistema: só para uso na borda (Server Component/cliente). */
 export function todayInClinic(): string {
   return DateTime.now().setZone(CLINIC_TIME_ZONE).toFormat('yyyy-MM-dd');
+}
+
+/** Instante ISO UTC de `date` ('YYYY-MM-DD') + `hhmm` ('HH:mm') no fuso da clínica. */
+export function clinicLocalToIso(date: string, hhmm: string): string {
+  if (!LOCAL_DATE_RE.test(date) || !LOCAL_TIME_RE.test(hhmm)) {
+    throw new Error(`Invalid local date/time: ${date} ${hhmm}`);
+  }
+  const dt = DateTime.fromISO(`${date}T${hhmm}`, { zone: CLINIC_TIME_ZONE });
+  if (!dt.isValid) throw new Error(`Invalid local date/time: ${date} ${hhmm}`);
+  return dt.toUTC().toISO() as string;
 }
