@@ -176,6 +176,21 @@ describe('Horário semanal e bloqueios (e2e)', () => {
       });
     });
 
+    // professionalId nunca vem do cliente (guia §6): forbidNonWhitelisted recusa.
+    it('POST com professionalId no corpo → fields [professionalId], nada gravado', async () => {
+      const before = await ctx.prisma.scheduleBlock.count();
+      const res = await post({
+        kind: 'FULL_DAYS',
+        fromDate: '2026-11-16',
+        toDate: '2026-11-20',
+        professionalId: '00000000-0000-0000-0000-000000000000',
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VALIDATION_FAILED');
+      expect(res.body.details.fields).toEqual(['professionalId']);
+      expect(await ctx.prisma.scheduleBlock.count()).toBe(before);
+    });
+
     it('details do erro de validação não contém o texto do motivo', async () => {
       const res = await post({
         kind: 'FULL_DAYS',
