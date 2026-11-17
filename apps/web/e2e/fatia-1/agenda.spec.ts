@@ -389,3 +389,78 @@ test.describe("[P] agenda semanal", () => {
     }
   });
 });
+
+test.describe("[P] agenda semanal: geometria das colunas", () => {
+  // Regressão de layout (CA-1.6/1.8/1.15/1.19/1.26 usam a agenda, sem critério próprio de
+  // geometria): sem `grid-column` explícito, bloqueios e agendamentos que sobrepõem linhas
+  // iam para uma coluna implícita, deslocados e mais estreitos que o dia.
+  test("[P] bloqueio e agendamento têm a largura e o x da coluna do dia (tolerância de borda e margem)", async ({
+    page,
+  }) => {
+    const contactName = `Paciente ${randomUUID().slice(0, 8)}`;
+    const reason = `Geometria ${randomUUID().slice(0, 8)}`;
+    const date = addDays(todayInClinic(), 230);
+    const item = page
+      .getByRole("list", { name: "Bloqueios" })
+      .getByRole("listitem")
+      .filter({ hasText: reason });
+    try {
+      // Dado um bloqueio 14:00–15:30 e um agendamento 14:30–15:00 no mesmo dia
+      await loginAsDentist(page);
+      await page.goto("/dashboard/bloqueios");
+      await page.getByRole("radio", { name: "Período" }).check();
+      await page.getByLabel("Data", { exact: true }).fill(date);
+      await page.getByLabel("Início", { exact: true }).fill("14:00");
+      await page.getByLabel("Fim", { exact: true }).fill("15:30");
+      await page.getByLabel("Motivo", { exact: true }).fill(reason);
+      await page.getByRole("button", { name: "Criar bloqueio" }).click();
+      await expect(item).toBeVisible();
+      insertAppointment({
+        contactName,
+        startAt: clinicLocalToIso(date, "14:30"),
+        endAt: clinicLocalToIso(date, "15:00"),
+      });
+
+      // Quando abre a semana desse dia
+      await page.goto(`/dashboard/agenda?semana=${weekStartOf(date)}`);
+      const column = page.getByRole("list", {
+        name: formatClinicDate(date),
+        exact: true,
+      });
+      const block = column.getByRole("listitem").filter({ hasText: reason });
+      const appt = column.locator("[data-status]").filter({ hasText: contactName });
+      await expect(block).toBeVisible();
+      await expect(appt).toBeVisible();
+
+      // Então ambos ocupam a largura e o x da coluna do dia
+      const c = await column.boundingBox();
+      expect(c, "coluna do dia: caixa").not.toBeNull();
+      for (const [what, locator] of [
+        ["bloqueio", block],
+        ["agendamento", appt],
+      ] as const) {
+        const b = await locator.boundingBox();
+        expect(b, `${what}: caixa`).not.toBeNull();
+        // A caixa da coluna inclui a borda (1px de cada lado) e o agendamento tem `m-px`
+        // (1px de cada lado): até 4px a menos na largura e 2px no x. O defeito original
+        // deslocava e estreitava o item em dezenas de px, então 4px ainda o pega.
+        expect(Math.abs(b!.x - c!.x), `${what}: x ${b!.x} vs coluna ${c!.x}`).toBeLessThanOrEqual(2);
+        expect(
+          Math.abs(b!.width - c!.width),
+          `${what}: largura ${b!.width} vs coluna ${c!.width}`,
+        ).toBeLessThanOrEqual(4);
+      }
+    } finally {
+      deleteAppointmentsByContactName(contactName);
+      await page.goto("/dashboard/bloqueios");
+      if (await item.count()) {
+        await item.getByRole("button", { name: /^Excluir/ }).click();
+        await page
+          .getByRole("dialog")
+          .getByRole("button", { name: "Excluir" })
+          .click();
+        await expect(item).toHaveCount(0);
+      }
+    }
+  });
+});

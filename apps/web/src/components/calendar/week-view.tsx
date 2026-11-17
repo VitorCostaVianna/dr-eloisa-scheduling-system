@@ -40,7 +40,10 @@ const STATUS_LABEL: Record<CalendarAppointmentDto["status"], string> = {
 const dayMonth = (date: string, withYear: boolean) =>
   `${formatClinicDate(date).split(", ")[1]}${withYear ? ` de ${date.slice(0, 4)}` : ""}`;
 
+// `gridColumn: 1` é obrigatório: sem ele o auto-placement manda itens que sobrepõem linhas
+// para colunas implícitas novas, deslocando e estreitando o item.
 const rowOf = (item: PositionedItem) => ({
+  gridColumn: 1,
   gridRow: `${item.topSlot + 1} / span ${item.spanSlots}`,
 });
 
@@ -109,7 +112,10 @@ export function WeekView({ calendar, weekStart }: WeekViewProps) {
               role="list"
               aria-labelledby={day.date}
               className="grid rounded border bg-background"
-              style={{ gridTemplateRows: ROWS }}
+              style={{
+                gridTemplateRows: ROWS,
+                gridTemplateColumns: "minmax(0,1fr)",
+              }}
             >
               {bands
                 .filter((b) => b.dayIndex === dayIndex)
