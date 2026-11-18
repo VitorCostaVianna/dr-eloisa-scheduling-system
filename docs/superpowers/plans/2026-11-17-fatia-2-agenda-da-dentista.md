@@ -34,7 +34,7 @@ RN-17, RN-30–38, RN-42–46, §5 T2/T7/T9/T11/T12/T13, §6.7, §8 fatia 2, §9
 ## Antes de começar (orquestrador)
 
 - [x] (aceitas em 2026-11-17) O usuário aceitou (ou rejeitou) as ADRs 023 (`@nestjs/event-emitter`) e 035
-      (`libphonenumber-js`), hoje "Proposta". Rejeitada → replanejar Tarefas 1, 2 e 4 antes
+      (`libphonenumber-js`), **aceitas em 2026-11-17**. Rejeitada → replanejar Tarefas 1, 2 e 4 antes
       de despachar.
 - [x] O usuário respondeu às perguntas do plano em 2026-11-17 (ver "Decisões do usuário" no
       fim deste plano).
@@ -204,7 +204,7 @@ e 035. Sem `CA` próprio: habilita CA-2.3, 2.6–2.10, 2.12, 2.14, 2.16, 2.21.
   `apps/api/src/common/errors/error-codes.ts` (+ `.spec`),
   `packages/shared-types/src/error-codes.ts`, `apps/web/src/lib/api-errors.ts` (+ teste
   Vitest existente, se houver tabela), `docs/decisions.md` (ADR 023 e 035: só a linha da
-  versão conferida e a data; o **status fica "Proposta"** para o usuário aceitar).
+  versão conferida e a data; o status já é **"Aceita"** desde 2026-11-17, não mexer nele).
 - Criar: `apps/api/src/scheduling/contracts/appointment-events.ts`.
 
 **Passos de dependência (guia §3.10), com a saída colada no relatório:**
@@ -1213,7 +1213,7 @@ Receitas: guia §4.3 (rastreabilidade), §4.6 (20×), §4.8 (regressão), §5.2 
       Decisão 5: `POST /patients/lookup`; `POST /blocks` com `affectedIds?`/`keepIds?`), §7.2 (nomes dos serviços:
       um caso de uso por classe), §2.5 (se algum `details` mudou); guia §4.3 (tabela de
       camadas da fatia 2 com as camadas efetivamente usadas); ADRs 023 e 035 com a versão
-      real conferida (status continua "Proposta" até o usuário aceitar); "Índice rápido"
+      real conferida (o status já é "Aceita"); "Índice rápido"
       do `decisions.md`. Qualquer ADR nova surgida nas tarefas (ex.: rota de busca de paciente ou texto do CA-2.6)
       registrada **antes** da tarefa seguinte, não só aqui.
 - [ ] Atualizar a memória do projeto (estado atual: fatia 2 pronta para aprovação).
