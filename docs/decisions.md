@@ -675,7 +675,7 @@ real (ADR 033); mais arquivos por feature. As regras de import viram lint quando
 ## 022 — Luxon 3.7.2 e um único helper de fuso; dias como `YYYY-MM-DD` locais
 
 **Data:** 2026-10-28
-**Status:** Proposta
+**Status:** Aceita (usuário, 2026-11-13; versões instaladas conferidas no fechamento da fatia 1)
 
 **Contexto:** toda regra de calendário (dia da semana, faixa, feriado, manhã/tarde, 07:00 do
 lembrete, bloqueio de dia inteiro) é avaliada em `America/Sao_Paulo`, no backend também
@@ -992,7 +992,7 @@ topologia virar cross-site, continua valendo o alerta da ADR 018 (Decisão 2).
 ## 033 — Infraestrutura de teste
 
 **Data:** 2026-10-28
-**Status:** Proposta
+**Status:** Aceita (usuário, 2026-11-13; versões instaladas conferidas no fechamento da fatia 1)
 
 **Contexto:** hoje a app de teste é criada sem o setup do `main.ts`, cada e2e carrega o
 `.env.test` à mão e não há suíte de integração nem testes no web (guia §4.2). Os critérios
@@ -1017,6 +1017,21 @@ em integração/e2e (banco compartilhado com truncamento); mockar Prisma nos cas
 reais. Entram dependências de teste no web (Vitest, Testing Library, jsdom, Playwright): as
 versões exatas são escolhidas no dia da instalação pela regra do guia §3.10 (houve releases
 nas últimas 2 semanas) e anotadas nesta ADR antes de ela virar Aceita.
+
+**Versões instaladas no web (2026-11-12, exatas, publicadas há ≥ 14 dias):** `vitest@4.1.12`
+(2026-10-15), `@testing-library/react@16.3.3` (2026-08-27), `@testing-library/jest-dom@7.0.1`
+(2026-08-09), `@testing-library/user-event@14.6.8` (2026-10-13), `jsdom@29.1.1` (2026-04-30, ver abaixo),
+`@vitejs/plugin-react@6.1.2` (2026-10-05; exige Vite 8, que o Vitest 4.1 aceita),
+`@playwright/test@1.64.1` (2026-10-14), `luxon@3.7.2`, `@types/luxon@3.7.6` e `server-only@0.0.1`.
+Ficaram de fora versões mais novas (Vitest 5.1.0, Playwright 1.65.0, plugin-react 6.3.0)
+por terem menos de 14 dias. O `global-setup` do Playwright reutiliza o `@prisma/client` do
+`apps/api` (sem dependência nova no web).
+
+**jsdom fixado em 29.1.1 (2026-04-30), não 30.x:** o `jsdom@30` exige Node `^22.22.2 || ^24.15.0`
+e traz `undici@8`, que quebra no Node 22.14 (`Cannot read properties of undefined (reading 'bind')`
+em `undici/lib/interceptor/decompress.js`), então nenhum teste com jsdom subia. O `jsdom@29.1.1`
+(Node `^20.19.0 || ^22.13.0`, `undici@7`) roda no Node 22.14; verificado com um teste de
+componente descartável. Subir para 30.x só junto com a atualização do Node.
 
 ---
 
@@ -1063,6 +1078,39 @@ Usado em `domain/phone.ts` e no validador `@IsBrPhone()` (arquitetura §2.6).
 metadados de numeração envelhecem; ao atualizar, conferir a versão usada pelo
 `class-validator`.
 
+## 036 — Pipeline de CI no GitHub Actions, em três camadas
+
+**Data:** 2026-11-12
+**Status:** Proposta
+
+**Contexto:** a regressão do guia §4.8 (8 comandos) era manual, rodava só na máquina de quem
+implementou e o aceite dependia dessa mesma máquina. Já houve falhas que só uma execução
+limpa revela: `dist` do `shared-types` desatualizado e o limite de 5 logins/min do
+`/auth/login` estourando no Playwright. O repositório já está no GitHub.
+
+**Decisão:** `.github/workflows/ci.yml`, em PR para `main` e em push no `main`
+(`paths-ignore` para docs), com três jobs:
+1. `static-and-unit` (sem banco): build do shared-types (o lint do api é type-aware e lê o
+   `dist`), lint **sem** `--fix`, `typecheck`, `pnpm test`, `build`.
+2. `api-integration` (`needs` 1; Postgres 16.15 como service): `test:int` e `test:e2e`, serial.
+3. `web-e2e` (`needs` 1; Postgres 16.15): Playwright; traço enviado como artefato só em falha.
+
+Os jobs 2 e 3 rodam em paralelo. Concorrência cancela rodadas antigas de PR, não a em andamento
+do `main`. Actions fixadas por SHA de commit (tag no comentário), só versões que rodam em Node 24
+(o GitHub removeu o Node 20 dos runners em 2026-09), `permissions: contents: read`,
+Node 22 (`.nvmrc`), pnpm 9.12.0 via `npm i -g` (como em dev), `pnpm install --frozen-lockfile`,
+`.env.test` copiado do `.example`. Sem deploy, sem execução agendada, sem matriz de Node.
+
+**Alternativas rejeitadas:** um job único (feedback lento e sem paralelismo); rodar tudo
+sempre sem `needs` (gasta minutos de Playwright quando o lint já falhou); execução noturna
+(um desenvolvedor e uma cliente: o `main` só muda por PR); `--fix` no CI (esconderia o erro).
+
+**Consequências:** o aceite passa a ter uma execução neutra. Teste instável aparece como
+vermelho (sem `retries`; guia §7.5). Bumpar uma action exige trocar o SHA e conferir a idade
+da versão (guia §3.10). O Playwright depende do `pnpm-lock.yaml` para a chave do cache.
+Marcar os três jobs como obrigatórios na proteção do `main`, com cuidado com `paths-ignore`
+(job ignorado fica "pendente" e bloqueia o merge).
+
 ---
 
 ## Índice rápido
@@ -1090,17 +1138,18 @@ metadados de numeração envelhecem; ao atualizar, conferir a versão usada pelo
 | 019 | Regras de agenda da reunião de 28/10: aprovação manual, duração por procedimento, horário semanal, feriados, e-mail obrigatório + lembrete | Negócio |
 | 020 | Modelo do módulo de Agenda: `ScheduleBlock` + feriados calculados + `HolidayOverride`, predicado da constraint, `Patient.email` opcional e telefone E.164, token 256 bits no fragmento, `REJECTED`/`EXPIRED`/`SYSTEM`, auditoria, outbox, expurgo de 7 dias, cookie em `agenda.` (proposta) | Dados/Segurança |
 | 021 | Camadas: `domain/` puro, `application/` dona da transação, `infra/` e `http/` finos (proposta) | Backend |
-| 022 | Luxon 3.7.2 num único helper de fuso, `Clock` injetável, dias `YYYY-MM-DD` locais (proposta) | Backend/Frontend |
+| 022 | Luxon 3.7.2 num único helper de fuso, `Clock` injetável, dias `YYYY-MM-DD` locais | Backend/Frontend |
 | 023 | `@nestjs/schedule@6.1.3` e `@nestjs/event-emitter@3.1.0` pinados nas linhas CJS (proposta) | Infra |
 | 024 | Modelo de erro com `code` estável; códigos públicos únicos (`SLOT_UNAVAILABLE`, `BOOKING_NOT_ALLOWED`, `INVALID_LINK`) (proposta) | Backend/Segurança |
 | 025 | Lock consultivo por profissional + `UPDATE` condicional com `now` da aplicação (proposta) | Concorrência |
 | 026 | Idempotência por comparação com campos gravados; ordem honeypot → chave → captcha (proposta) | Backend/Segurança |
 | 027 | E-mail: porta `EmailSender`, outbox com reserva e backoff, templates TS com escape (proposta) | Backend |
-| 028 | `notifications` lê pelo `AppointmentReader`, só de `scheduling/contracts` (proposta) | Backend |
+| 028 | `notifications` lê pelo `AppointmentReader`, só de `scheduling/contracts` | Backend |
 | 029 | Frontend sem Server Actions: `apiServer`/`apiFetch`/`publicFetch` (proposta) | Frontend/Segurança |
 | 030 | `class-validator` autoritativo, Zod só no web, `shared-types` com build CJS (proposta) | Backend/Frontend |
 | 031 | Calendário próprio em CSS grid, formulário antes de arrastar (proposta) | Frontend |
 | 032 | CSRF: 415 para mutação com `Content-Type` não JSON (proposta) | Segurança |
-| 033 | Infra de teste: `configureApp` compartilhado, Jest unit/int/e2e, Vitest + Playwright, `[CA-x.y]` (proposta) | Testes |
+| 033 | Infra de teste: `configureApp` compartilhado, Jest unit/int/e2e, Vitest + Playwright, `[CA-x.y]` | Testes |
 | 034 | Throttlers `default` + `hourly` em memória (proposta) | Segurança |
 | 035 | `libphonenumber-js@1.13.11`, a mesma do `class-validator` (proposta) | Backend |
+| 036 | Pipeline de CI em GitHub Actions, três camadas (proposta) | Infra/Testes |

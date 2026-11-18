@@ -154,7 +154,7 @@ apps/api/src/
       advisory-lock.ts            # lockSchedule(tx, professionalId)
     http/
       json-only.middleware.ts     # CSRF por Content-Type (spec 10.1)
-    validation/                   # IsBrPhone, NoControlChars, IsLocalDate, IsIsoInstant, IsMultipleOf
+    validation/                   # IsBrPhone, NoControlChars, IsLocalDate (ano 1..9998), IsIsoInstant, IsMultipleOf, assertLocalRange(from, to, maxDays)
   scheduling/
     scheduling.module.ts          # exports: [AppointmentReader]
     contracts/                    # ÚNICA superfície vista por outros módulos
@@ -186,6 +186,7 @@ apps/api/src/
     infra/
       appointment.repository.ts, schedule.repository.ts, patient.repository.ts,
       procedure.repository.ts, holiday-override.repository.ts
+      appointment-read.repository.ts  # leitura mínima da fatia 1 (calendário/disponibilidade); a fatia 2 decide se vira a porta AppointmentReader (ADR-C 8) ou é absorvido por appointment.repository.ts
       captcha/                    # CaptchaVerifier (porta), TurnstileVerifier, FakeCaptchaVerifier
     http/
       dentist/                    # controllers autenticados
@@ -962,7 +963,7 @@ A spec (7) fixa só **quais** rotas são públicas. Mutações exigem JSON (spec
 | 1 | `GET /working-hours` (· `PUT`, baixa prioridade) | Horário semanal | RN-01, RN-45 |
 | 1 | `GET /blocks?from&to` · `POST /blocks` · `DELETE /blocks/:id` | `{ kind: 'FULL_DAYS', fromDate, toDate } \| { kind: 'PERIOD', startAt, endAt }`, `reason?` | RN-42, RN-44, CA-1.15 |
 | 1 | `GET /holidays?year` · `POST /holiday-overrides { date }` · `DELETE /holiday-overrides/:date` | Feriados com estado; desbloquear (idempotente: repetido devolve a mesma linha, CA-1.25); desfazer | RN-08, RN-46 |
-| 1 | `GET /calendar?from&to` | Faixas, feriados, desbloqueios, bloqueios; agendamentos a partir da fatia 2 (com `outsideWorkingHours`, `onHoliday`, divergência) | CA-1.8, CA-1.23, CA-1.26, CA-2.15 |
+| 1 | `GET /calendar?from&to` | Faixas, feriados, desbloqueios, bloqueios; agendamentos ocupantes já na fatia 1, leitura mínima (`AppointmentReadRepository`: `onHoliday`, `outsideWorkingHours`, `procedureName`; CA-1.19, CA-1.26); divergência e ações a partir da fatia 2 | CA-1.8, CA-1.23, CA-1.26, CA-2.15 |
 | 2 | `POST /blocks/preview` · `POST /blocks` com `{ affectedIds, keepIds }` | Prévia e confirmação | RN-43 |
 | 2 | `GET /patients/lookup?phone=` | Paciente pelo telefone normalizado | RN-15, CA-2.2 |
 | 2 | `POST /appointments/preview` | `{ startAt, durationMinutes, excludeAppointmentId? }` → `{ warnings[], conflicts[] }` | RN-33, RN-34 |
@@ -1054,9 +1055,9 @@ Token inexistente, malformado ou expurgado: 404 `INVALID_LINK` (CA-3.20).
 | Fundação | `configureApp` (usado por `main.ts` e testes), `clinic-time`/`Clock`, erros, `json-only.middleware`, build do `shared-types`, infra de teste, Luxon, dívidas do guia ([guia 8](guia-de-desenvolvimento.md#8-dividas-fatia-1)) |
 | Banco | M1, M2, seed (6.9) |
 | Domínio | `holidays.ts` (nacionais + BH + Carnaval), `availability.ts` (com desbloqueios), `intervals.ts`, `statuses.ts` |
-| Application | `procedures`, `schedule-config` (bloqueios sem RN-43), `holiday-overrides`, `availability`, `professional-context` |
+| Application | `procedures`, `schedule-config` (bloqueios sem RN-43), `holiday-overrides`, `availability`, `calendar` (+ `AppointmentReadRepository`, leitura mínima de agendamentos), `professional-context` |
 | HTTP | `/procedures`, `/working-hours`, `/blocks`, `/holidays`, `/holiday-overrides`, `/calendar`, `/public/procedures`, `/public/availability` |
-| Web | `dashboard/layout`, `procedimentos`, `horario`, `bloqueios` (com feriados), `agenda` (sem agendamentos); `api-server`, `api-errors`, `clinic-time` |
+| Web | `dashboard/layout`, `procedimentos`, `horario`, `bloqueios` (com feriados), `agenda` (agendamentos só leitura; ações na fatia 2); `api-server`, `api-errors`, `clinic-time` |
 | Critérios | CA-1.1..1.26 |
 
 ### 7.2 Fatia 2 — Agenda da dentista

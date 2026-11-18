@@ -1,0 +1,136 @@
+# Pipeline de verificação (ADR 036). Espelha a suíte de regressão do guia §4.8, em camadas:
+# barata e sem banco primeiro; as suítes com Postgres só rodam se a primeira passar.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md', '.claude/**']
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**/*.md', '.claude/**']
+
+# Push novo no mesmo PR cancela a rodada antiga; no main não cancela a rodada em andamento.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Mesmo pnpm do projeto (guia §1: instalado via npm, não corepack).
+  PNPM_VERSION: 9.12.0
+  CI: true
+
+jobs:
+  # Camada 1 — sem banco. Falha rápida: lint, tipos, unit (api) e Vitest (web), build.
+  static-and-unit:
+    name: Lint, tipos, unit e build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm i -g pnpm@${{ env.PNPM_VERSION }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      # O lint do api é type-aware e lê o `dist` do shared-types (guia §4.8, passo 1).
+      - run: pnpm --filter @sistema-agendamento/shared-types build
+      # O lint do api usa `--fix` no script local; no CI só verifica (nunca altera a árvore).
+      - run: pnpm --filter api exec eslint "{src,apps,libs,test}/**/*.ts"
+      - run: pnpm --filter web lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  # Camada 2 — Postgres real: integração (I) e e2e da API (E). Serial (`--runInBand`, guia §4.2).
+  api-integration:
+    name: API — integração e e2e (Postgres)
+    needs: static-and-unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16.15
+        env:
+          POSTGRES_USER: agendamento
+          POSTGRES_PASSWORD: agendamento_dev_only
+          POSTGRES_DB: agendamento_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U agendamento -d agendamento_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm i -g pnpm@${{ env.PNPM_VERSION }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - run: cp apps/api/.env.test.example apps/api/.env.test
+      # Os testes consomem o `dist` do shared-types (guia §7).
+      - run: pnpm --filter @sistema-agendamento/shared-types build
+      - run: pnpm --filter api test:int
+      - run: pnpm --filter api test:e2e
+
+  # Camada 3 — fluxos de tela (P): a mais lenta (builda api e web e abre o navegador).
+  web-e2e:
+    name: Web — Playwright
+    needs: static-and-unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16.15
+        env:
+          POSTGRES_USER: agendamento
+          POSTGRES_PASSWORD: agendamento_dev_only
+          POSTGRES_DB: agendamento_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U agendamento -d agendamento_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm i -g pnpm@${{ env.PNPM_VERSION }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - run: cp apps/api/.env.test.example apps/api/.env.test
+      - run: pnpm --filter @sistema-agendamento/shared-types build
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - run: pnpm --filter web exec playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+      - run: pnpm --filter web test:e2e
+      # Só em falha: o traço ajuda a achar a causa sem rodar de novo. Contém a sessão do
+      # seed de teste (banco descartável), nunca dado real.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: apps/web/test-results/
+          retention-days: 7

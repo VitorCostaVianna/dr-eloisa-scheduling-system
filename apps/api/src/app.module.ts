@@ -6,6 +6,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { TimeModule } from './common/time/time.module';
+import { SchedulingModule } from './scheduling/scheduling.module';
 
 @Module({
   imports: [
@@ -17,8 +19,10 @@ import { AuthModule } from './auth/auth.module';
       },
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    TimeModule,
     PrismaModule,
     AuthModule,
+    SchedulingModule,
   ],
   controllers: [AppController],
   providers: [

@@ -44,4 +44,23 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
+  {
+    // Só o helper de fuso importa luxon (guia §7.1).
+    files: ['**/*.ts'],
+    ignores: ['src/common/time/clinic-time.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'luxon',
+              message:
+                'Use common/time/clinic-time.ts: único importador de luxon.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
