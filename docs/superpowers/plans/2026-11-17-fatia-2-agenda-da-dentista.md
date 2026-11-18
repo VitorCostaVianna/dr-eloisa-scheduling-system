@@ -33,7 +33,7 @@ RN-17, RN-30–38, RN-42–46, §5 T2/T7/T9/T11/T12/T13, §6.7, §8 fatia 2, §9
 
 ## Antes de começar (orquestrador)
 
-- [ ] O usuário aceitou (ou rejeitou) as ADRs 023 (`@nestjs/event-emitter`) e 035
+- [x] (aceitas em 2026-11-17) O usuário aceitou (ou rejeitou) as ADRs 023 (`@nestjs/event-emitter`) e 035
       (`libphonenumber-js`), hoje "Proposta". Rejeitada → replanejar Tarefas 1, 2 e 4 antes
       de despachar.
 - [x] O usuário respondeu às perguntas do plano em 2026-11-17 (ver "Decisões do usuário" no
@@ -1292,13 +1292,13 @@ perdedor no mesmo trabalho.
    (`rescheduled`, `contact_updated`…); o schema (fatia 1) e a arquitetura usam o enum
    `AppointmentEventType` em maiúsculas. O plano segue o schema; os testes conferem
    `RESCHEDULED`/`CONTACT_UPDATED`. Corrigir o comentário da spec §6.7 (ou registrar ADR) —
-   decisão do usuário, já que a spec tem precedência.
+   decisão do usuário, já que a spec tem precedência. **Resolvida (2026-11-17):** spec §6.7 corrigida para o enum `AppointmentEventType` em maiúsculas.
 4. **Nome do paciente em `details` de erro.** CLAUDE.md §4.1 diz "nenhum dado pessoal em …
    mensagem de erro"; a RN-33 e a arquitetura §2.5 exigem o nome no 409
    `APPOINTMENT_OVERLAP` (painel autenticado). A spec vence; o plano estende o mesmo
    tratamento a `BLOCK_AFFECTED_CHANGED.details.affected` (a arquitetura não detalha o
    formato). Sugestão: o CLAUDE.md citar essa exceção ("exceto `details` de conflito no
-   painel autenticado, RN-33").
+   painel autenticado, RN-33"). **Resolvida (2026-11-17):** exceção registrada no CLAUDE.md §4.1.
 5. **Arquitetura §7.2 cita um serviço `dentist-appointments`**; o CLAUDE.md §4.2 pede um caso
    de uso por classe. O plano segue o CLAUDE.md (`direct-booking`, `reschedule-appointment`,
    …) e a Tarefa 13 corrige a §7.2.
@@ -1312,7 +1312,8 @@ perdedor no mesmo trabalho.
    agendamento como está, sem `AppointmentEvent` e sem evento. (Tarefas 5 e 6.)
 2. **Início exatamente "agora"** conta como passado (`startAt ≤ agora` → `START_IN_PAST`).
    (Tarefa 2.)
-3. **Observação (`notes`) aceita quebra de linha** (`
+3. **Observação (`notes`) aceita quebra de linha** (`
+
 ` normalizado para `
 `); recusa os
    demais caracteres de controle. Nome e e-mail recusam todos. (Tarefas 4 e 6.)

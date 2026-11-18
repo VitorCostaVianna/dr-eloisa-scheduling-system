@@ -701,7 +701,7 @@ IANA basta). Qualquer `getHours()`/`getDay()` fora do helper é erro de revisão
 ## 023 — `@nestjs/schedule@6.1.3` e `@nestjs/event-emitter@3.1.0` (linhas CJS)
 
 **Data:** 2026-10-28
-**Status:** Proposta
+**Status:** Aceita (usuário, 2026-11-17; a Tarefa 1 da fatia 2 confere a versão real antes de instalar)
 
 **Contexto:** o módulo precisa de jobs agendados (prazo de 24h/expiração, expurgo,
 lembrete, envio de e-mail; spec 9.3) e de eventos entre módulos (ADR 003; spec 9.7: o
@@ -1061,7 +1061,7 @@ storage compartilhado.
 ## 035 — `libphonenumber-js@1.13.11` para telefone
 
 **Data:** 2026-10-28
-**Status:** Proposta
+**Status:** Aceita (usuário, 2026-11-17; a Tarefa 1 da fatia 2 confere a versão real antes de instalar)
 
 **Contexto:** o telefone precisa ser validado como número brasileiro e normalizado para
 E.164 antes de busca e gravação (RN-11, RN-15; ADR 020, Decisão 3). A spec §11 sugere
@@ -1139,7 +1139,7 @@ Marcar os três jobs como obrigatórios na proteção do `main`, com cuidado com
 | 020 | Modelo do módulo de Agenda: `ScheduleBlock` + feriados calculados + `HolidayOverride`, predicado da constraint, `Patient.email` opcional e telefone E.164, token 256 bits no fragmento, `REJECTED`/`EXPIRED`/`SYSTEM`, auditoria, outbox, expurgo de 7 dias, cookie em `agenda.` (proposta) | Dados/Segurança |
 | 021 | Camadas: `domain/` puro, `application/` dona da transação, `infra/` e `http/` finos (proposta) | Backend |
 | 022 | Luxon 3.7.2 num único helper de fuso, `Clock` injetável, dias `YYYY-MM-DD` locais | Backend/Frontend |
-| 023 | `@nestjs/schedule@6.1.3` e `@nestjs/event-emitter@3.1.0` pinados nas linhas CJS (proposta) | Infra |
+| 023 | `@nestjs/schedule@6.1.3` e `@nestjs/event-emitter@3.1.0` pinados nas linhas CJS | Infra |
 | 024 | Modelo de erro com `code` estável; códigos públicos únicos (`SLOT_UNAVAILABLE`, `BOOKING_NOT_ALLOWED`, `INVALID_LINK`) (proposta) | Backend/Segurança |
 | 025 | Lock consultivo por profissional + `UPDATE` condicional com `now` da aplicação (proposta) | Concorrência |
 | 026 | Idempotência por comparação com campos gravados; ordem honeypot → chave → captcha (proposta) | Backend/Segurança |
@@ -1151,5 +1151,5 @@ Marcar os três jobs como obrigatórios na proteção do `main`, com cuidado com
 | 032 | CSRF: 415 para mutação com `Content-Type` não JSON (proposta) | Segurança |
 | 033 | Infra de teste: `configureApp` compartilhado, Jest unit/int/e2e, Vitest + Playwright, `[CA-x.y]` | Testes |
 | 034 | Throttlers `default` + `hourly` em memória (proposta) | Segurança |
-| 035 | `libphonenumber-js@1.13.11`, a mesma do `class-validator` (proposta) | Backend |
+| 035 | `libphonenumber-js@1.13.11`, a mesma do `class-validator` | Backend |
 | 036 | Pipeline de CI em GitHub Actions, três camadas (proposta) | Infra/Testes |

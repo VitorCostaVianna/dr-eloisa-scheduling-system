@@ -133,6 +133,10 @@ implementador: esqueleto → testador escreve [CA] (vermelho) → implementador 
 - `professionalId` nunca vem do cliente.
 - Endpoint público novo só com spec/ADR autorizando (guia §3.2).
 - Nenhum dado pessoal em log, `AppointmentEvent`, URL ou mensagem de erro.
+  Única exceção: o `details` de um 409 de conflito do painel autenticado
+  (`APPOINTMENT_OVERLAP`, `BLOCK_AFFECTED_CHANGED`) traz horário e nome do agendamento
+  conflitante, porque a RN-33 exige (nunca telefone, e-mail ou observação, e nunca em rota
+  pública).
 - Dependência nova: versão **exata**, publicada há ≥ 14 dias, CJS no `apps/api`, ADR
   (guia §3.10).
 

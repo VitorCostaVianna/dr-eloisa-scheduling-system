@@ -572,7 +572,7 @@ model AppointmentEvent {
   id            String             @id @default(uuid())
   appointment   Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   appointmentId String
-  type          String             // requested, confirmed, rejected, cancelled, expired, rescheduled, contact_updated, completed, no_show
+  type          AppointmentEventType  // REQUESTED, CONFIRMED, REJECTED, CANCELLED, EXPIRED, RESCHEDULED, CONTACT_UPDATED, COMPLETED, NO_SHOW (enum Prisma, como no schema)
   actor         CancelledBy        // PATIENT | DENTIST | SYSTEM (reaproveita o enum; renomear para Actor é aceitável)
   fromStatus    AppointmentStatus?
   toStatus      AppointmentStatus
